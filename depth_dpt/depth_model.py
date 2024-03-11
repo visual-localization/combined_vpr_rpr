@@ -139,7 +139,14 @@ class DPT_DepthModel:
             write_depth(filename, prediction, bits=2, absolute_depth=self.absolute_depth)
         print("finished")
     
-    def img_db_process(self,input_path):
+    def img_db_process(self,input_path,dataset:str):
+        if(dataset == "Mapfree"):
+            self.mapfree_img_process(input_path,dataset)
+        else:
+            #TODO
+            raise NotImplementedError("Teehee")
+    
+    def mapfree_img_process(self,input_path):
         depth_path = os.path.join(input_path,'depth')
         img_path = os.path.join(input_path,"image")
         #If output folder exisit, return

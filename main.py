@@ -17,8 +17,8 @@ class RPR_Solver:
         self.pose_solver = FeatureDepthModel(feature_matching="SuperGlue",pose_solver="EssentialMatrixMetric")
         
         #Prepare depth image
-        self.prep_dataset(db_path)
-        self.prep_dataset(query_path)
+        self.prep_dataset(db_path,dataset)
+        self.prep_dataset(query_path,dataset)
         if(dataset == "Mapfree"):
         # Load into MapfreeDataset
             self.db_dataset = MapfreeDataset(
@@ -67,5 +67,5 @@ class RPR_Solver:
         
         
         
-    def prep_dataset(self,data_path:Path):
-        self.depth_solver.img_db_process(data_path)
+    def prep_dataset(self,data_path:Path,dataset:str):
+        self.depth_solver.img_db_process(data_path,dataset)
