@@ -1,10 +1,10 @@
-from typing import List, Tuple
+from typing import List, Tuple,Union
 
 import numpy as np
 from transforms3d.quaternions import quat2mat
 
 
-def project(pts: np.ndarray, K: np.ndarray, img_size: List[int] or Tuple[int] = None) -> np.ndarray:
+def project(pts: np.ndarray, K: np.ndarray, img_size: Union[List[int], Tuple[int]] = None) -> np.ndarray:
     """Projects 3D points to image plane.
 
     Args:

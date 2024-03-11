@@ -34,8 +34,8 @@ def compute_scene_metrics(estimated_pose:Pose,query_scene:Scene):
     if extract_scene_label(estimated_pose.anchor) != extract_scene_label(query_scene["name"]):
         failures += 1
     else:
-        q_est, t_est = convert_world2cam_to_cam2world(estimated_pose.R, estimated_pose.t)
-        q_gt, t_gt = convert_world2cam_to_cam2world(query_scene["rotation"],query_scene["translation"])
+        q_est, t_est = estimated_pose.R, estimated_pose.t
+        q_gt, t_gt = query_scene["rotation"],query_scene["translation"]
         inputs = Inputs(
             q_gt=q_gt, t_gt=t_gt,
             q_est=q_est,t_est=t_est,

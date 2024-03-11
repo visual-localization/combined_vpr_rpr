@@ -82,9 +82,12 @@ class FrustumDifferennce:
         :param origin_translation: array [3]
         :return: abs_point: array [N,3]
         '''
+        # mat1 = quat2mat(origin_rotation)
+        # abs_cam_origin = rotate_vector(-origin_translation, qinverse(origin_rotation))
+        # abs_point = (mat1.T@origin_points.T).T+abs_cam_origin
+        # return abs_point
         mat1 = quat2mat(origin_rotation)
-        abs_cam_origin = rotate_vector(-origin_translation, qinverse(origin_rotation))
-        abs_point = (mat1.T@origin_points.T).T+abs_cam_origin
+        abs_point = (mat1@origin_points.T).T + origin_translation
         return abs_point
     
     @staticmethod
@@ -102,9 +105,15 @@ class FrustumDifferennce:
         :param target_intrinsics: array [3,3]
         :return: target_points: array [N,2]
         '''
+        # mat2 = quat2mat(target_rotation) 
+        # abs_cam_target = rotate_vector(-target_translation, qinverse(target_rotation))
+        # point_in_query = mat2@(world_points-abs_cam_target).T
+        # point_in_query = target_intrinsics@point_in_query
+        # temp = point_in_query.T
+        # target_points = temp/temp[:,2].reshape(-1, 1)
+        # return target_points[:,:2]
         mat2 = quat2mat(target_rotation) 
-        abs_cam_target = rotate_vector(-target_translation, qinverse(target_rotation))
-        point_in_query = mat2@(world_points-abs_cam_target).T
+        point_in_query = mat2.T@(world_points-target_translation).T
         point_in_query = target_intrinsics@point_in_query
         temp = point_in_query.T
         target_points = temp/temp[:,2].reshape(-1, 1)
