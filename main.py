@@ -7,7 +7,7 @@ import torch
 from mixvpr_model import MatchingPipeline
 from depth_dpt import DPT_DepthModel
 from mapfree import FeatureDepthModel,Pose
-from data import MapfreeDataset
+from data import MapfreeDataset,CamLandmarkDataset
 from validation import validate_results
 from miner import CustomMultiSimilarityMiner
 
@@ -16,18 +16,24 @@ class RPR_Solver:
         self.depth_solver = DPT_DepthModel()
         self.pose_solver = FeatureDepthModel(feature_matching="SuperGlue",pose_solver="EssentialMatrixMetric")
         
-        #Prepare depth image
-        self.prep_dataset(db_path,dataset)
-        self.prep_dataset(query_path,dataset)
+        
         if(dataset == "Mapfree"):
-        # Load into MapfreeDataset
+            #Prepare depth image
+            self.prep_dataset(db_path,dataset)
+            self.prep_dataset(query_path,dataset)
+            # Load into MapfreeDataset
             self.db_dataset = MapfreeDataset(
                 db_path
             )
             self.query_dataset = MapfreeDataset(
                 query_path
             )
-          
+        elif(dataset == "CamLandmark"):
+            self.db_dataset = CamLandmarkDataset(db_path,mode="db",depth_solver = self.depth_solver)
+            self.query_dataset = CamLandmarkDataset(query_path,mode="query",depth_solver = self.depth_solver)
+        else:
+            raise NotImplementedError()
+        
     def run(self,top_k=5):
         top_k_matches = self.run_vpr(top_k=top_k)
         poses = self.run_rpr(

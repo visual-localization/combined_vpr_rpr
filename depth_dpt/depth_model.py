@@ -155,3 +155,13 @@ class DPT_DepthModel:
         #     return
         os.makedirs(depth_path, exist_ok=True)
         self.batch_generate_monodepth(img_path,depth_path)
+    
+    def solo_generate_monodepth(self, input_path, output_path):
+        """
+        The function received in a path to an image file and 
+        generate the corresponding depth image to the output path
+        """
+        if(os.path.exists(output_path)):
+            return
+        prediction = self.generate_monodepth(input_path)
+        write_depth(output_path, prediction, bits=2, absolute_depth=self.absolute_depth)
