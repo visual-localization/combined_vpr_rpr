@@ -127,12 +127,7 @@ class CamLandmarkDataset(SceneDataset):
 
         #Load depth map into torch.tensor
         if self.estimated_depth is not None:
-            scene_bundle_depth = name.split("/")[0] + "_depth"
-            depth_path = os.path.join(
-                str(self.data_path),
-                scene_bundle_depth,
-                *name.split("/")[1:]
-            )
+            depth_path = generate_depth_path(self.data_path,(self.data_path/name))
             depth = read_depth_image(depth_path)
         else:
             depth = torch.tensor([])
