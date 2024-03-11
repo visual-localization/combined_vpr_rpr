@@ -72,40 +72,16 @@ class SceneDataset(Dataset):
     
     def __init__(
         self,
-        data_path: Path("/content/drive/MyDrive/Dataset/map-free-vpr/db"),
+        data_path:Path = Path("/content/drive/MyDrive/Dataset/map-free-vpr/db"),
         resize:Optional[Tuple[int,int]]=None,
         transforms=None,
-        estimated_depth:str='dptkitti',
-        mode:str="db"
+        estimated_depth:str='dptkitti'
     ):
-        
-        # Setup all required path
-        self.data_path = data_path
-        self.img_path = Path(os.path.join(data_path,'image'))
-        self.depth_path = Path(os.path.join(data_path,'depth'))
-        
-        # Additional Args
-        self.resize = resize if resize is not None else MAPFREE_RESIZE
-        self.transforms=transforms
-        self.estimated_depth=estimated_depth
-        assert mode in ['db','query','test'], f"Mode {mode} is not recognized, please use mode in {['db','query','test']}"
-        
-        # load absolute poses
-        self.poses = self.read_poses(self.data_path)
-        img_path_list = list(os.listdir(self.img_path))
-        self.img_path_list = sorted(img_path_list)
+        raise NotImplementedError("init function has not been implemented")
         
     @staticmethod
     def read_intrinsics(img_name: str, resize=None):
-        full_name = img_name[:-4]
-        parts = full_name.split('_')
-        start_idx = 2 if len(parts)==8 else 1
-        fx, fy, cx, cy, W, H = tuple(map(float, parts[start_idx:]))
-
-        K = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]], dtype=np.float32)
-        if resize is not None:
-            K = correct_intrinsic_scale(K, resize[0] / W, resize[1] / H)
-        return K,W,H
+        raise NotImplementedError("read_intrinsics function has not been implemented")
 
     @staticmethod
     def read_poses(root_path: Path) -> Dict[str,Tuple[np.ndarray,np.ndarray]]:
@@ -115,57 +91,20 @@ class SceneDataset(Dataset):
         np.array t = (tx ty tz) translation vector;
         (q, t) encodes absolute pose (world-to-camera), i.e. X_c = R(q) X_W + t
         """
-        poses = {}
-        with(root_path / 'poses.txt').open('r') as f:
-            for line in tqdm(f.readlines()):
-                if '#' in line:
-                    continue
-
-                line = line.strip().split(' ')
-                img_name = line[0]
-                qt = np.array(list(map(float, line[1:])))
-                poses[img_name] = (qt[:4], qt[4:])
-        return poses
+        raise NotImplementedError("read_poses function has not been implemented")
 
     def __len__(self):
-        return len(self.img_path_list)
+        raise NotImplementedError("len function has not been implemented")
     
     def __getitem__(self,name_idx:Union[str,int])->Tuple[Scene,int]:
         """
         Args:
             name (str): has name and intrinsics value in it. Ex: s00516_588.6688_588.6688_271.2803_348.6664_540_720.jpg
+            or
+            idx (int): the index of the name in the img_path_list as some function used the index
         Returns:
             scene_obj (Scene): lorem
         """
-        if(isinstance(name_idx,int)):
-            name = self.img_path_list[name_idx]
-            index= name_idx
-        else:
-            name = name_idx
-            index= self.img_path_list.index(name_idx)
-        
-        #Load image into torch.tensor
-        image = transform(str(self.img_path/name),self.resize)
-
-        #Load depth map into torch.tensor
-        if self.estimated_depth is not None:
-            depth_path = str(self.depth_path / name).replace('.jpg','.png')
-            depth = read_depth_image(depth_path)
-        else:
-            depth = torch.tensor([])
-            
-        #Load intrinsics matrix
-        intrinsics_matrix,width,height = self.read_intrinsics(name,self.resize)
-        
-        #Load rotation and translation
-        q,t = self.poses[name]
-        
-        return Scene.create_dict(
-            name,
-            image,depth,
-            intrinsics_matrix,
-            q,t,
-            width,height
-        ), index
+        raise NotImplementedError("get item function has not been implemented")
         
         

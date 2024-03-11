@@ -7,29 +7,27 @@ import torch
 from mixvpr_model import MatchingPipeline
 from depth_dpt import DPT_DepthModel
 from mapfree import FeatureDepthModel,Pose
-from data import SceneDataset
+from data import MapfreeDataset
 from validation import validate_results
 from miner import CustomMultiSimilarityMiner
 
 class RPR_Solver:
-    def __init__(self,db_path:Path, query_path:Path, mode:str="query"):
+    def __init__(self, db_path:Path, query_path:Path,dataset:str="Mapfree"):
         self.depth_solver = DPT_DepthModel()
         self.pose_solver = FeatureDepthModel(feature_matching="SuperGlue",pose_solver="EssentialMatrixMetric")
         
         #Prepare depth image
         self.prep_dataset(db_path)
         self.prep_dataset(query_path)
-        
-        # Load into SceneDataset
-        self.db_dataset = SceneDataset(
-            db_path,
-            mode="db"
-        )
-        self.query_dataset = SceneDataset(
-            query_path,
-            mode=mode
-        )
-        
+        if(dataset == "Mapfree"):
+        # Load into MapfreeDataset
+            self.db_dataset = MapfreeDataset(
+                db_path
+            )
+            self.query_dataset = MapfreeDataset(
+                query_path
+            )
+          
     def run(self,top_k=5):
         top_k_matches = self.run_vpr(top_k=top_k)
         poses = self.run_rpr(
