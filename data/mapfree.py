@@ -8,9 +8,10 @@ from torch.utils.data import Dataset
 import numpy as np
 import cv2
 
-from .utils import read_color_image,correct_intrinsic_scale,read_depth_image
+from .utils import correct_intrinsic_scale,read_depth_image
 from const import MAPFREE_RESIZE
 from .scene import Scene,SceneDataset
+from utils import convert_world2cam_to_cam2world
 
 def transform(img_path, resize):
     cv_type = cv2.IMREAD_COLOR
@@ -122,7 +123,7 @@ class MapfreeDataset(SceneDataset):
         
         #Load rotation and translation
         q,t = self.poses[name]
-        
+        q,t = convert_world2cam_to_cam2world(q,t)
         return Scene.create_dict(
             name,
             image,depth,
