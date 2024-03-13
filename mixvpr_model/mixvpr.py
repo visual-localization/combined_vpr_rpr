@@ -140,7 +140,7 @@ class InferencePipeline:
     def __init__(
         self, model:VPRModel, 
         dataset:SceneDataset, 
-        feature_dim:int, batch_size:int=4, num_workers:int=4, device:str='cuda'
+        feature_dim:int, batch_size:int=4, num_workers:int=8, device:str='cuda'
     ):
         self.model = model
         self.dataset = dataset

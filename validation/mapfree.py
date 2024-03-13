@@ -6,6 +6,7 @@ from io import TextIOWrapper
 import json
 import logging
 from typing import Dict
+from tqdm import tqdm
 
 import numpy as np
 
@@ -19,7 +20,7 @@ from utils import extract_scene_label,convert_world2cam_to_cam2world
 
 
 
-def compute_scene_metrics(estimated_pose:Pose,query_scene:Scene):
+def compute_scene_metrics(estimated_pose:Pose,query_scene:Scene,dataset:str):
     metric_manager = MetricManager()
 
     # failures encode how many images that match to the wrong database image
@@ -31,19 +32,26 @@ def compute_scene_metrics(estimated_pose:Pose,query_scene:Scene):
     results = defaultdict(list)
 
     # compute metrics per frame
-    if extract_scene_label(estimated_pose.anchor) != extract_scene_label(query_scene["name"]):
-        failures += 1
+    if(dataset == "Mapfree"):
+        if extract_scene_label(estimated_pose.anchor) != extract_scene_label(query_scene["name"]):
+            failures += 1
+            return results, failures
+    elif("CamLandmark" in dataset):
+        pass
     else:
-        q_est, t_est = estimated_pose.R, estimated_pose.t
-        q_gt, t_gt = query_scene["rotation"],query_scene["translation"]
-        inputs = Inputs(
-            q_gt=q_gt, t_gt=t_gt,
-            q_est=q_est,t_est=t_est,
-            confidence=estimated_pose.inliers,
-            K = query_scene["intrinsics_matrix"],
-            W = query_scene["width"], H = query_scene["height"]
-        )
-        metric_manager(inputs,results)
+        raise NotImplementedError("No validation condition for this dataset was implemented")
+    
+    
+    q_est, t_est = estimated_pose.R, estimated_pose.t
+    q_gt, t_gt = query_scene["rotation"],query_scene["translation"]
+    inputs = Inputs(
+        q_gt=q_gt, t_gt=t_gt,
+        q_est=q_est,t_est=t_est,
+        confidence=estimated_pose.inliers,
+        K = query_scene["intrinsics_matrix"],
+        W = query_scene["width"], H = query_scene["height"]
+    )
+    metric_manager(inputs,results)
 
     return results, failures
 
@@ -99,15 +107,17 @@ def count_unexpected_scenes(scenes: tuple, submission_zip: ZipFile):
 
 def validate_results(
     final_pose:Dict[str,Pose],
-    query_dataset:SceneDataset
+    query_dataset:SceneDataset,
+    dataset:str
 ):
     all_results = dict()
     all_failures = 0
     
-    for scene_name in final_pose.keys():
+    for scene_name in tqdm(final_pose.keys()):
         metrics, failures = compute_scene_metrics(
             final_pose[scene_name],
-            query_dataset[scene_name][0]
+            query_dataset[scene_name][0],
+            dataset
         )
         if(failures==1):
           all_failures += failures

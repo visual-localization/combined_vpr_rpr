@@ -13,7 +13,7 @@ from depth_dpt import DPT_DepthModel
 
 def generate_depth_path(root_path:Path,img_path:Path)->Path:
     name = str(img_path)
-    tail_name_split = name[len(str(root_path))+1:].split("/")
+    tail_name_split = name[len(str(root_path))+1:-4].split("/")
     scene_bundle_depth = tail_name_split[0] + "_depth"
     depth_path = os.path.join(
         str(root_path),
@@ -60,7 +60,7 @@ class CamLandmarkDataset(SceneDataset):
         # create depth images
         for img_path in tqdm(self.img_path_list):
             input_path = (self.data_path/img_path)
-            output_path = generate_depth_path(self.data_path,Path(input_path))
+            output_path = generate_depth_path(self.data_path,Path(input_path))[:-4]
             depth_solver.solo_generate_monodepth(input_path,output_path)
     
     @staticmethod
@@ -100,6 +100,7 @@ class CamLandmarkDataset(SceneDataset):
                     img_name = os.path.join(dir,line[0])
                     qt = np.array(list(map(float, line[1:])))
                     poses[img_name] = (qt[3:],qt[:3])
+        return poses
     
     def __len__(self):
         return len(self.img_path_list)
@@ -125,7 +126,7 @@ class CamLandmarkDataset(SceneDataset):
         #Load depth map into torch.tensor
         if self.estimated_depth is not None:
             depth_path = generate_depth_path(self.data_path,(self.data_path/name))
-            depth = read_depth_image(depth_path)
+            depth = read_depth_image(str(depth_path)+".png")
         else:
             depth = torch.tensor([])
             

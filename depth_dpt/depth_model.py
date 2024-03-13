@@ -2,9 +2,8 @@ import torch
 from torchvision.transforms import Compose
 import cv2
 import numpy as np
-from tqdm import tqdm
 
-import glob 
+from pathlib import Path
 import os
 
 from .util.io import read_image,write_depth
@@ -36,7 +35,7 @@ class DPT_DepthModel:
             "midas_v21": "weights/midas_v21-f6b98070.pt",
             "dpt_large": "weights/dpt_large-midas-2f21e586.pt",
             "dpt_hybrid": "weights/dpt_hybrid-midas-501f0c75.pt",
-            "dpt_hybrid_kitti": "/content/drive/MyDrive/Model/final_rpr-master/depth_dpt/weights/dpt_hybrid_kitti-cb926ef4.pt",
+            "dpt_hybrid_kitti": "/content/drive/MyDrive/Model/latest_combined_model/depth_dpt/weights/dpt_hybrid_kitti-cb926ef4.pt",
             "dpt_hybrid_nyu": "weights/dpt_hybrid_nyu-2ce69ec7.pt",
         }
 
@@ -85,9 +84,9 @@ class DPT_DepthModel:
 
         self.model.to(self.device)
     
-    def generate_monodepth(self,img_path):
+    def generate_monodepth(self,img_path,resize):
         # input
-        img:np.ndarray = read_image(img_path)
+        img:np.ndarray = read_image(img_path,resize)
 
         if self.kitti_crop is True:
             height, width, _ = img.shape
@@ -123,7 +122,7 @@ class DPT_DepthModel:
                 
         return prediction
     #region Ihatemylife
-    def batch_generate_monodepth(self, input_path, output_path):
+    def batch_generate_monodepth(self, input_path, output_path,resize):
   
         print("start processing")
         for ind, img_name in enumerate(os.listdir(input_path)):
@@ -135,18 +134,18 @@ class DPT_DepthModel:
               print(f"skipped {ind}")
               continue
             print(img_name)
-            prediction = self.generate_monodepth(os.path.join(input_path,img_name))
+            prediction = self.generate_monodepth(os.path.join(input_path,img_name),resize)
             write_depth(filename, prediction, bits=2, absolute_depth=self.absolute_depth)
         print("finished")
     
-    def img_db_process(self,input_path,dataset:str):
+    def img_db_process(self,input_path,dataset:str,resize):
         if(dataset == "Mapfree"):
-            self.mapfree_img_process(input_path,dataset)
+            self.mapfree_img_process(input_path,resize)
         else:
             #TODO
             raise NotImplementedError("Teehee")
     
-    def mapfree_img_process(self,input_path):
+    def mapfree_img_process(self,input_path,resize):
         depth_path = os.path.join(input_path,'depth')
         img_path = os.path.join(input_path,"image")
         #If output folder exisit, return
@@ -154,15 +153,18 @@ class DPT_DepthModel:
         #     print("Skipped depth")
         #     return
         os.makedirs(depth_path, exist_ok=True)
-        self.batch_generate_monodepth(img_path,depth_path)
+        self.batch_generate_monodepth(img_path,depth_path,resize)
     #endregion
     
-    def solo_generate_monodepth(self, input_path, output_path):
+    def solo_generate_monodepth(self, input_path, output_path, resize):
         """
         The function received in a path to an image file and 
         generate the corresponding depth image to the output path
+        :param input_path: /content/.../frame001.png
+        :param output_path: /content/.../frame001 (no .png, it will be added in the prediction process)
         """
-        if(os.path.exists(output_path)):
+        if(os.path.exists(str(output_path)+".png")):
             return
-        prediction = self.generate_monodepth(input_path)
-        write_depth(output_path, prediction, bits=2, absolute_depth=self.absolute_depth)
+        os.makedirs(Path(output_path).parent,exist_ok=True)
+        prediction = self.generate_monodepth(str(input_path),resize)
+        write_depth(str(output_path), prediction, bits=2, absolute_depth=self.absolute_depth)

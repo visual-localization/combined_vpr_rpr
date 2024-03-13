@@ -20,3 +20,9 @@ $abs_{point} = (cam_{point} - t) * q^{-1}$
 - Orientation should be from camera coordinate system to world.
 - To validate your results, checks if this formula is correct.
   $abs_{point} = cam_{point}*q + t$
+
+# 13/03/2024
+### For creating new Dataloader checklist
+- Create Dataloader inherited from SceneDataset class
+- Create Depth image of the database
+- Resize in SuperGlue Matcher
