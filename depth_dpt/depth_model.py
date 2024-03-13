@@ -122,7 +122,7 @@ class DPT_DepthModel:
                 prediction *= 256
                 
         return prediction
-    
+    #region Ihatemylife
     def batch_generate_monodepth(self, input_path, output_path):
   
         print("start processing")
@@ -155,6 +155,7 @@ class DPT_DepthModel:
         #     return
         os.makedirs(depth_path, exist_ok=True)
         self.batch_generate_monodepth(img_path,depth_path)
+    #endregion
     
     def solo_generate_monodepth(self, input_path, output_path):
         """
