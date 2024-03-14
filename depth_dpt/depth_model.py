@@ -17,7 +17,7 @@ class DPT_DepthModel:
         self, model_path = None, model_type="dpt_hybrid_kitti",
         optimize=True,
         kitti_crop=False,
-        absolute_depth = False
+        absolute_depth = True
     ):
         
         # set torch options
