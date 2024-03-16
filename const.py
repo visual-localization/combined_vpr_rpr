@@ -13,3 +13,11 @@ PNP = {
 }
 FRUSTUM_THRESHOLD = 1.95
 ANGLE_THRESHOLD = 80
+CAM_LANDMARK_SCENE_BUNDLE = [
+    "GreatCourt",
+    "KingsCollege",
+    "OldHospital",
+    "ShopFacade",
+    "StMarysChurch",
+    "Street"
+]

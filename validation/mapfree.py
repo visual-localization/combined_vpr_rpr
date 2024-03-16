@@ -16,7 +16,8 @@ from validation.utils import precision_recall
 from validation.metrics import MetricManager, Inputs
 import validation.config as config
 from mapfree import Pose
-from utils import extract_scene_label,convert_world2cam_to_cam2world
+from utils import extract_scene_label
+from const import CAM_LANDMARK_SCENE_BUNDLE
 
 
 
@@ -37,7 +38,13 @@ def compute_scene_metrics(estimated_pose:Pose,query_scene:Scene,dataset:str):
             failures += 1
             return results, failures
     elif("CamLandmark" in dataset):
-        pass
+        for bundle in CAM_LANDMARK_SCENE_BUNDLE:
+            query_bundle_bool = bundle in query_scene["name"]
+            anchor_bundle_bool = bundle in estimated_pose.anchor
+            if(query_bundle_bool != anchor_bundle_bool):
+                failures += 1
+                return results, failures
+                
     else:
         raise NotImplementedError("No validation condition for this dataset was implemented")
     

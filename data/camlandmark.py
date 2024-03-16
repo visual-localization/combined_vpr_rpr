@@ -60,7 +60,7 @@ class CamLandmarkDataset(SceneDataset):
         # create depth images
         for img_path in tqdm(self.img_path_list):
             input_path = (self.data_path/img_path)
-            output_path = generate_depth_path(self.data_path,Path(input_path))[:-4]
+            output_path = generate_depth_path(self.data_path,Path(input_path))
             depth_solver.solo_generate_monodepth(input_path,output_path)
     
     @staticmethod
@@ -68,7 +68,7 @@ class CamLandmarkDataset(SceneDataset):
         """
         Read the intrinsics of a specific image, according to its name
         """
-        fx, fy, cx, cy, W, H = 744.375,744.375,0,0,1920,1080
+        fx, fy, cx, cy, W, H = 744.375,744.375,960,540,1920,1080
         K = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]], dtype=np.float32)
         if resize is not None:
             K = correct_intrinsic_scale(K, resize[0] / W, resize[1] / H)
