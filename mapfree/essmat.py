@@ -7,6 +7,7 @@ from data import SceneDataset,Scene
 from .pose_solver import EssentialMatrixMetricSolver
 from .feature_matching import SuperGlue_matcher
 from .converter import convert_pose
+from const import MAPFREE_RESIZE, CAM_RESIZE
 
 class Pose:
     R: np.ndarray
@@ -36,9 +37,17 @@ class FeatureDepthModel:
         self,
         feature_matching:str,
         pose_solver:str,
+        dataset:str
     ):
+        resize = None
+        if(dataset == "Mapfree"):
+            resize = MAPFREE_RESIZE
+        elif("CamLandmark" in dataset):
+            resize = CAM_RESIZE
+        else:
+            raise NotImplementedError("No resize value for this dataset")
         if(feature_matching=="SuperGlue"):
-            self.feature_matching = SuperGlue_matcher(outdoor=True)
+            self.feature_matching = SuperGlue_matcher(outdoor=True,resize=resize)
         else:
             assert False, "Feature Matching Model not found"
         

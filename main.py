@@ -7,30 +7,55 @@ import torch
 from mixvpr_model import MatchingPipeline
 from depth_dpt import DPT_DepthModel
 from mapfree import FeatureDepthModel,Pose
-from data import MapfreeDataset,CamLandmarkDataset
+from data import MapfreeDataset,CamLandmarkDataset,CamLandmarkDatasetPartial
 from validation import validate_results
-from miner import CustomMultiSimilarityMiner
+from const import MAPFREE_RESIZE,CAM_RESIZE
 
 class RPR_Solver:
     def __init__(self, db_path:Path, query_path:Path,dataset:str="Mapfree"):
         self.depth_solver = DPT_DepthModel()
-        self.pose_solver = FeatureDepthModel(feature_matching="SuperGlue",pose_solver="EssentialMatrixMetric")
-        
+        self.pose_solver = FeatureDepthModel(feature_matching="SuperGlue",pose_solver="EssentialMatrixMetric",dataset=dataset)
+        self.dataset = dataset
         
         if(dataset == "Mapfree"):
             #Prepare depth image
-            self.prep_dataset(db_path,dataset)
-            self.prep_dataset(query_path,dataset)
+            self.prep_dataset(db_path,dataset,MAPFREE_RESIZE)
+            self.prep_dataset(query_path,dataset,MAPFREE_RESIZE)
             # Load into MapfreeDataset
             self.db_dataset = MapfreeDataset(
-                db_path
+                db_path,
+                resize=MAPFREE_RESIZE
             )
             self.query_dataset = MapfreeDataset(
-                query_path
+                query_path,
+                resize=MAPFREE_RESIZE
             )
         elif(dataset == "CamLandmark"):
-            self.db_dataset = CamLandmarkDataset(db_path,mode="db",depth_solver = self.depth_solver)
-            self.query_dataset = CamLandmarkDataset(query_path,mode="query",depth_solver = self.depth_solver)
+            self.db_dataset = CamLandmarkDataset(
+                db_path,
+                mode="db",
+                depth_solver=self.depth_solver,
+                resize=CAM_RESIZE
+            )
+            self.query_dataset = CamLandmarkDataset(
+                query_path,
+                mode="query",
+                depth_solver = self.depth_solver,
+                resize = CAM_RESIZE    
+            )
+        elif(dataset == "CamLandmark_Partial"):
+            self.db_dataset = CamLandmarkDatasetPartial(
+                db_path,
+                mode="db",
+                depth_solver=self.depth_solver,
+                resize=CAM_RESIZE
+            )
+            self.query_dataset = CamLandmarkDatasetPartial(
+                query_path,
+                mode="query",
+                depth_solver = self.depth_solver,
+                resize = CAM_RESIZE    
+            )
         else:
             raise NotImplementedError()
         
@@ -69,9 +94,9 @@ class RPR_Solver:
         self,
         final_pose:Dict[str,Pose]
     ):
-        validate_results(final_pose,self.query_dataset)
+        validate_results(final_pose,self.query_dataset,self.dataset)
         
         
         
-    def prep_dataset(self,data_path:Path,dataset:str):
-        self.depth_solver.img_db_process(data_path,dataset)
+    def prep_dataset(self,data_path:Path,dataset:str,resize):
+        self.depth_solver.img_db_process(data_path,dataset,resize)

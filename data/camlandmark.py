@@ -13,7 +13,7 @@ from depth_dpt import DPT_DepthModel
 
 def generate_depth_path(root_path:Path,img_path:Path)->Path:
     name = str(img_path)
-    tail_name_split = name[len(str(root_path))+1:].split("/")
+    tail_name_split = name[len(str(root_path))+1:-4].split("/")
     scene_bundle_depth = tail_name_split[0] + "_depth"
     depth_path = os.path.join(
         str(root_path),
@@ -68,7 +68,7 @@ class CamLandmarkDataset(SceneDataset):
         """
         Read the intrinsics of a specific image, according to its name
         """
-        fx, fy, cx, cy, W, H = 744.375,744.375,0,0,1920,1080
+        fx, fy, cx, cy, W, H = 744.375,744.375,960,540,1920,1080
         K = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]], dtype=np.float32)
         if resize is not None:
             K = correct_intrinsic_scale(K, resize[0] / W, resize[1] / H)
@@ -100,6 +100,7 @@ class CamLandmarkDataset(SceneDataset):
                     img_name = os.path.join(dir,line[0])
                     qt = np.array(list(map(float, line[1:])))
                     poses[img_name] = (qt[3:],qt[:3])
+        return poses
     
     def __len__(self):
         return len(self.img_path_list)
@@ -125,7 +126,7 @@ class CamLandmarkDataset(SceneDataset):
         #Load depth map into torch.tensor
         if self.estimated_depth is not None:
             depth_path = generate_depth_path(self.data_path,(self.data_path/name))
-            depth = read_depth_image(depth_path)
+            depth = read_depth_image(str(depth_path)+".png")
         else:
             depth = torch.tensor([])
             

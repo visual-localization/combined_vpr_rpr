@@ -98,8 +98,7 @@ def write_pfm(path, image, scale=1):
 
         image.tofile(file)
 
-
-def read_image(path):
+def read_image(path,resize):
     """Read image and output RGB image (0-1).
 
     Args:
@@ -113,6 +112,7 @@ def read_image(path):
     if img.ndim == 2:
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 
+    img = cv2.resize(img, resize)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255.0
 
     return img
