@@ -44,7 +44,12 @@ def compute_scene_metrics(estimated_pose:Pose,query_scene:Scene,dataset:str):
             if(query_bundle_bool != anchor_bundle_bool):
                 failures += 1
                 return results, failures
-                
+    elif("GSV" in dataset):
+        [city_ref, place_id_ref] = estimated_pose.anchor.split("_")[:2]
+        [city_query,place_id_query] = query_scene["name"].split("_")[:2]
+        if(not (city_ref == city_query and place_id_query == place_id_ref)):
+            failures += 1
+            return results, failures    
     else:
         raise NotImplementedError("No validation condition for this dataset was implemented")
     
