@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from typing import Optional,Dict,Tuple,Any, Union,List
 from tqdm import tqdm
+from transforms3d.quaternions import qinverse
 
 import torch
 import numpy as np
@@ -136,6 +137,7 @@ class CamLandmarkDatasetPartial(SceneDataset):
         
         #Load rotation and translation
         q,t = self.poses[name]
+        q = qinverse(q)
         return Scene.create_dict(
             name,
             image,depth,

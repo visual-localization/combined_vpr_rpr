@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from typing import Optional,Dict,Tuple,Any, Union,List
 from tqdm import tqdm
+from transforms3d.quaternions import qinverse
 
 import torch
 import numpy as np
@@ -10,6 +11,7 @@ from .utils import correct_intrinsic_scale,read_depth_image
 from const import CAM_RESIZE
 from .scene import Scene,SceneDataset,transform
 from depth_dpt import DPT_DepthModel
+from utils import convert_world2cam_to_cam2world
 
 def generate_depth_path(root_path:Path,img_path:Path)->Path:
     name = str(img_path)
@@ -135,6 +137,7 @@ class CamLandmarkDataset(SceneDataset):
         
         #Load rotation and translation
         q,t = self.poses[name]
+        q = qinverse(q)
         return Scene.create_dict(
             name,
             image,depth,
