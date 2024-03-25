@@ -7,9 +7,9 @@ import torch
 from mixvpr_model import MatchingPipeline
 from depth_dpt import DPT_DepthModel
 from mapfree import FeatureDepthModel,Pose
-from data import MapfreeDataset,CamLandmarkDataset,CamLandmarkDatasetPartial,GsvDatasetPartial
+from data import MapfreeDataset,CamLandmarkDataset,CamLandmarkDatasetPartial,GsvDatasetPartial,Pittsburgh250kSceneDataset
 from validation import validate_results
-from const import MAPFREE_RESIZE,CAM_RESIZE,GSV_RESIZE
+from const import MAPFREE_RESIZE,CAM_RESIZE,GSV_RESIZE,PITTS_RESIZE
 
 class RPR_Solver:
     def __init__(self, db_path:Path, query_path:Path,dataset:str="Mapfree"):
@@ -72,6 +72,19 @@ class RPR_Solver:
                 depth_solver=self.depth_solver,
                 random_state=222,
                 sample_percent=0.5
+            )
+        elif (dataset == "Pittsburgh250k"):
+            self.db_dataset = Pittsburgh250kSceneDataset(
+                db_path,
+                mode="db",
+                depth_solver=self.depth_solver,
+                resize=PITTS_RESIZE
+            )
+            self.query_dataset = Pittsburgh250kSceneDataset(
+                query_path,
+                mode="query",
+                depth_solver=self.depth_solver,
+                resize=PITTS_RESIZE
             )
         else:
             raise NotImplementedError()

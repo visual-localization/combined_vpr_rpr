@@ -22,3 +22,4 @@ CAM_LANDMARK_SCENE_BUNDLE = [
     "StMarysChurch",
     "Street"
 ]
+PITTS_RESIZE = (640, 480)
