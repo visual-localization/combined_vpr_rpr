@@ -11,6 +11,11 @@ from const import CAM_RESIZE
 from .scene import Scene,SceneDataset,transform
 from depth_dpt import DPT_DepthModel
 
+##
+##
+# t1[0],t1[2],t1[1] = t1_temp[1],t1_temp[0],-t1_temp[2]
+# t2[0],t2[2],t2[1] = t2_temp[1],t2_temp[0],-t2_temp[2]
+
 def generate_depth_path(root_path:Path,img_path:Path)->Path:
     name = str(img_path)
     root_name = str(root_path)

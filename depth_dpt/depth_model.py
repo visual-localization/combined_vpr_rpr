@@ -35,7 +35,7 @@ class DPT_DepthModel:
             "midas_v21": "weights/midas_v21-f6b98070.pt",
             "dpt_large": "weights/dpt_large-midas-2f21e586.pt",
             "dpt_hybrid": "weights/dpt_hybrid-midas-501f0c75.pt",
-            "dpt_hybrid_kitti": "/content/drive/MyDrive/Model/latest_combined_model/depth_dpt/weights/dpt_hybrid_kitti-cb926ef4.pt",
+            "dpt_hybrid_kitti": "./depth_dpt/weights/dpt_hybrid_kitti-cb926ef4.pt",
             "dpt_hybrid_nyu": "weights/dpt_hybrid_nyu-2ce69ec7.pt",
         }
 

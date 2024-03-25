@@ -107,7 +107,7 @@ class GsvDatasetPartial(SceneDataset):
         (q, t) encodes absolute pose (world-to-camera), i.e. X_c = R(q) X_W + t
         """
         poses = {}
-        csv_path = root_path.replace("Images","Dataframe")+".csv"
+        csv_path = root_path.replace("Images","Dataframes")+".csv"
         df = pd.read_csv(csv_path).set_index("place_id")
         loc_index = pd.unique(df.index)
         for idx in loc_index:
