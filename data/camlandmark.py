@@ -108,7 +108,7 @@ class CamLandmarkDataset(SceneDataset):
     def __getitem__(self,name_idx:Union[str,int])->Tuple[Scene,int]:
         """
         Args:
-            name (str): has name and intrinsics value in it. Ex: s00516_588.6688_588.6688_271.2803_348.6664_540_720.jpg
+            name (str): has name and intrinsics value in it. Ex: GreatCourt/seq1/frame0001.png
         Returns:
             scene_obj (Scene): return Scene object
             index (int): return the index of the scene_object in the img_path_list

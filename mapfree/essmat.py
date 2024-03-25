@@ -7,7 +7,7 @@ from data import SceneDataset,Scene
 from .pose_solver import EssentialMatrixMetricSolver
 from .feature_matching import SuperGlue_matcher
 from .converter import convert_pose
-from const import MAPFREE_RESIZE, CAM_RESIZE
+from const import MAPFREE_RESIZE, CAM_RESIZE, GSV_RESIZE
 
 class Pose:
     R: np.ndarray
@@ -44,6 +44,8 @@ class FeatureDepthModel:
             resize = MAPFREE_RESIZE
         elif("CamLandmark" in dataset):
             resize = CAM_RESIZE
+        elif("GSV" in dataset):
+            resize = GSV_RESIZE
         else:
             raise NotImplementedError("No resize value for this dataset")
         if(feature_matching=="SuperGlue"):
