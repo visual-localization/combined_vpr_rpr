@@ -57,7 +57,10 @@ class Pittsburgh250kSceneDataset(SceneDataset):
             # print(f"{img_path} {input_path} {output_path}")
             depth_solver.solo_generate_monodepth(input_path,output_path,self.resize)
 
-
+    @staticmethod
+    def alt_convert_zxy(point_xyz):
+        point_xyz[0], point_xyz[1], point_xyz[2] = point_xyz[0], -point_xyz[2], point_xyz[1]
+        return point_xyz
 
     @staticmethod
     def read_intrinsics(img_name: str, resize=None):
@@ -126,6 +129,7 @@ class Pittsburgh250kSceneDataset(SceneDataset):
 
         #Load rotation and translation
         q,t = self.poses[name]
+        t = alt_to_zxy(t)
         return Scene.create_dict(
             name,
             image,depth,
