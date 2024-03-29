@@ -12,8 +12,20 @@ from .scene import Scene,SceneDataset,transform
 from depth_dpt import DPT_DepthModel
 
 def generate_depth_path(root_path:Path,img_path:Path)->Path:
+    # name = str(img_path)
+    # return Path(name.replace("input", "working")[:-4])
+
     name = str(img_path)
-    return Path(name.replace("input", "working")[:-4])
+    root_name = str(root_path)
+    tail_name = name[len(str(root_path)) + 1:]
+    head_name_split = root_name.split("/")
+    scene_bundle_depth = head_name_split[-1] + "_depth"
+    depth_path = os.path.join(
+        *head_name_split[:-1],
+        scene_bundle_depth,
+        tail_name
+    )
+    return Path("/" + depth_path[:-4])
 
 class Pittsburgh250kSceneDataset(SceneDataset):
     data_path: Path
@@ -37,7 +49,7 @@ class Pittsburgh250kSceneDataset(SceneDataset):
     ):
         # Setup 
         self.mode = mode
-        self.data_path = data_path # /content/drive/MyDrive/Dataset/pittsburgh250k/data/queries_real
+        self.data_path = data_path # /content/drive/MyDrive/Dataset/pittsburgh250k/data/images
 
 
         # Additional Args
@@ -81,10 +93,9 @@ class Pittsburgh250kSceneDataset(SceneDataset):
         np.array t = (tx ty tz) translation vector;
         (q, t) encodes absolute pose (world-to-camera), i.e. X_c = R(q) X_W + t
         """
-        # filename = Path("/kaggle/input/model-pitts/latest_combined_model_wtf/pose_test_val.txt") if mode == "query" \
-        #     else Path("/kaggle/input/model-pitts/latest_combined_model_wtf/pose_full_train.txt")
-        filename = "pose_test_val.txt"  if mode == "query" \
-            else "pose_full_train.txt"
+
+        filename = "pitts30k_test_query.txt"  if mode == "query" \
+            else "pitts30k_test_db.txt"
         poses = {}
         with (root_path/filename).open('r') as f:
             for line in tqdm(f.readlines()):
