@@ -1,42 +1,48 @@
-import numpy as np
-from .aggregators import CosPlace,GeMPool,ConvAP,MixVPR
-from .backbones import ResNet, EfficientNet,Swin
+from .aggregators import CosPlace, GeMPool, ConvAP, MixVPR
+from .backbones import ResNet, EfficientNet, Swin
 
 
-def get_backbone(backbone_arch='resnet50',
-                 pretrained=True,
-                 layers_to_freeze=2,
-                 layers_to_crop=[],):
+def get_backbone(
+    backbone_arch="resnet50",
+    pretrained=True,
+    layers_to_freeze=2,
+    layers_to_crop=[],
+):
     """Helper function that returns the backbone given its name
 
     Args:
         backbone_arch (str, optional): . Defaults to 'resnet50'.
         pretrained (bool, optional): . Defaults to True.
         layers_to_freeze (int, optional): . Defaults to 2.
-        layers_to_crop (list, optional): This is mostly used with ResNet where 
-                                         we sometimes need to crop the last 
+        layers_to_crop (list, optional): This is mostly used with ResNet where
+                                         we sometimes need to crop the last
                                          residual block (ex. [4]). Defaults to [].
 
     Returns:
         nn.Module: the backbone as a nn.Model object
     """
-    if 'resnet' in backbone_arch.lower():
+    if "resnet" in backbone_arch.lower():
         return ResNet(backbone_arch, pretrained, layers_to_freeze, layers_to_crop)
 
-    elif 'efficient' in backbone_arch.lower():
-        if '_b' in backbone_arch.lower():
-            return EfficientNet(backbone_arch, pretrained, layers_to_freeze+2)
+    elif "efficient" in backbone_arch.lower():
+        if "_b" in backbone_arch.lower():
+            return EfficientNet(backbone_arch, pretrained, layers_to_freeze + 2)
         else:
-            return EfficientNet(model_name='efficientnet_b0',
-                                          pretrained=pretrained, 
-                                          layers_to_freeze=layers_to_freeze)
-            
-    elif 'swin' in backbone_arch.lower():
-        return Swin(model_name='swinv2_base_window12to16_192to256_22kft1k', 
-                              pretrained=pretrained, 
-                              layers_to_freeze=layers_to_freeze)
+            return EfficientNet(
+                model_name="efficientnet_b0",
+                pretrained=pretrained,
+                layers_to_freeze=layers_to_freeze,
+            )
 
-def get_aggregator(agg_arch='ConvAP', agg_config={}):
+    elif "swin" in backbone_arch.lower():
+        return Swin(
+            model_name="swinv2_base_window12to16_192to256_22kft1k",
+            pretrained=pretrained,
+            layers_to_freeze=layers_to_freeze,
+        )
+
+
+def get_aggregator(agg_arch="ConvAP", agg_config={}):
     """Helper function that returns the aggregation layer given its name.
     If you happen to make your own aggregator, you might need to add a call
     to this helper function.
@@ -48,27 +54,27 @@ def get_aggregator(agg_arch='ConvAP', agg_config={}):
     Returns:
         nn.Module: the aggregation layer
     """
-    
-    if 'cosplace' in agg_arch.lower():
-        assert 'in_dim' in agg_config
-        assert 'out_dim' in agg_config
+
+    if "cosplace" in agg_arch.lower():
+        assert "in_dim" in agg_config
+        assert "out_dim" in agg_config
         return CosPlace(**agg_config)
 
-    elif 'gem' in agg_arch.lower():
+    elif "gem" in agg_arch.lower():
         if agg_config == {}:
-            agg_config['p'] = 3
+            agg_config["p"] = 3
         else:
-            assert 'p' in agg_config
+            assert "p" in agg_config
         return GeMPool(**agg_config)
-    
-    elif 'convap' in agg_arch.lower():
-        assert 'in_channels' in agg_config
+
+    elif "convap" in agg_arch.lower():
+        assert "in_channels" in agg_config
         return ConvAP(**agg_config)
-    
-    elif 'mixvpr' in agg_arch.lower():
-        assert 'in_channels' in agg_config
-        assert 'out_channels' in agg_config
-        assert 'in_h' in agg_config
-        assert 'in_w' in agg_config
-        assert 'mix_depth' in agg_config
+
+    elif "mixvpr" in agg_arch.lower():
+        assert "in_channels" in agg_config
+        assert "out_channels" in agg_config
+        assert "in_h" in agg_config
+        assert "in_w" in agg_config
+        assert "mix_depth" in agg_config
         return MixVPR(**agg_config)

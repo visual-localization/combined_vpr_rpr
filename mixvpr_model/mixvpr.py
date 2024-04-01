@@ -2,7 +2,6 @@ import os
 from typing import Tuple, Dict, List
 
 import torch
-from PIL import Image
 from torch.utils import data
 import numpy as np
 import torchvision.transforms as tvf
@@ -10,7 +9,7 @@ from tqdm import tqdm
 import cv2
 
 from .main import VPRModel
-from data import SceneDataset, Scene
+from data import SceneDataset
 from const import MIXVPR_RESIZE
 
 
