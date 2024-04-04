@@ -79,7 +79,7 @@ class Pittsburgh250kSceneDataset(SceneDataset):
         """
         Read the intrinsics of a specific image, according to its name
         """
-        fx, fy, cx, cy, W, H = 768.000, 768.000, 320, 240, 600, 400
+        fx, fy, cx, cy, W, H = 768.000, 768.000, 320, 240, 640, 480
         K = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]], dtype=np.float32)
         if resize is not None:
             K = correct_intrinsic_scale(K, resize[0] / W, resize[1] / H)
@@ -94,8 +94,8 @@ class Pittsburgh250kSceneDataset(SceneDataset):
         (q, t) encodes absolute pose (world-to-camera), i.e. X_c = R(q) X_W + t
         """
 
-        filename = "pitts30k_test_query.txt"  if mode == "query" \
-            else "pitts30k_test_db.txt"
+        filename = "pitts250k_test_query.txt"  if mode == "query" \
+            else "pitts250k_test_db.txt"
         poses = {}
         with (root_path/filename).open('r') as f:
             for line in tqdm(f.readlines()):
@@ -140,7 +140,7 @@ class Pittsburgh250kSceneDataset(SceneDataset):
 
         #Load rotation and translation
         q,t = self.poses[name]
-        t = alt_to_zxy(t)
+        t = self.alt_convert_zxy(t)
         return Scene.create_dict(
             name,
             image,depth,

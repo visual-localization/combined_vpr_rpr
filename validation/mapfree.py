@@ -49,7 +49,14 @@ def compute_scene_metrics(estimated_pose:Pose,query_scene:Scene,dataset:str):
         [city_query,place_id_query] = query_scene["name"].split("_")[:2]
         if(not (city_ref == city_query and place_id_query == place_id_ref)):
             failures += 1
-            return results, failures    
+            return results, failures
+    elif("Pittsburgh" in dataset):
+        t_est = estimated_pose.t
+        t_gt = query_scene["translation"]
+        dist = np.linalg.norm(t_est - t_gt)
+        if (dist >= 15):
+            failures += 1
+            return results, failures
     else:
         raise NotImplementedError("No validation condition for this dataset was implemented")
     
