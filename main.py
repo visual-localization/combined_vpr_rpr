@@ -12,7 +12,7 @@ from validation import validate_results
 from const import MAPFREE_RESIZE,CAM_RESIZE,GSV_RESIZE,PITTS_RESIZE
 
 class RPR_Solver:
-    def __init__(self, db_path:Path, query_path:Path,dataset:str="Mapfree"):
+    def __init__(self, db_path:Path, query_path:Path,dataset:str="Mapfree",set_name=None):
         self.depth_solver = DPT_DepthModel()
         self.pose_solver = FeatureDepthModel(feature_matching="SuperGlue",pose_solver="EssentialMatrixMetric",dataset=dataset)
         self.dataset = dataset
@@ -73,18 +73,22 @@ class RPR_Solver:
                 random_state=222,
                 sample_percent=0.5
             )
-        elif (dataset == "Pittsburgh250k"):
+
+        elif(dataset == "Pittsburgh250k"):
+            assert set_name is not None, "Please specify which set"
             self.db_dataset = Pittsburgh250kSceneDataset(
-                db_path,
-                mode="db",
+                set_name = set_name,
+                data_path=db_path,
+                resize = PITTS_RESIZE,
+                mode = "db",
                 depth_solver=self.depth_solver,
-                resize=PITTS_RESIZE
             )
             self.query_dataset = Pittsburgh250kSceneDataset(
-                query_path,
-                mode="query",
+                set_name = set_name,
+                data_path=query_path,
+                resize = PITTS_RESIZE,
+                mode = "query",
                 depth_solver=self.depth_solver,
-                resize=PITTS_RESIZE
             )
         else:
             raise NotImplementedError()
@@ -99,7 +103,7 @@ class RPR_Solver:
     def run_vpr(self,top_k=10)->Dict[str,List[str]]:
         #Run VPR
         matcher = MatchingPipeline(
-            ckpt_path="./LOGS/resnet50_MixVPR_4096_channels(1024)_rows(4).ckpt",
+            ckpt_path="/root/LOGS/init.ckpt",
             device='cuda' if torch.cuda.is_available() else 'cpu'
         )
         top_k_matches = matcher.run(

@@ -2,25 +2,27 @@ import os
 from pathlib import Path
 from typing import Optional,Dict,Tuple,Any, Union,List
 from tqdm import tqdm
+from transforms3d.quaternions import qinverse
 
 import torch
 import numpy as np
 
 from .utils import correct_intrinsic_scale,read_depth_image
-from const import CAM_RESIZE
+from const import CAM_RESIZE,CAM_LANDMARK_SCENE_BUNDLE
 from .scene import Scene,SceneDataset,transform
 from depth_dpt import DPT_DepthModel
 
-def generate_depth_path(root_path:Path,img_path:Path)->Path:
-    name = str(img_path)
-    tail_name_split = name[len(str(root_path))+1:-4].split("/")
-    scene_bundle_depth = tail_name_split[0] + "_depth"
+def generate_depth_path(root_path:Path,name:Path)->Path:
+    #root_path: /.../Cambridge_Landmark/    img_path: GreatCourt/seq001/framexxx.jpg
+    name = str(name)
+    root_path = str(root_path)
+    
+    scene_bundle = name.split("/")[0]
+    depth_name = name.replace(scene_bundle,f"{scene_bundle}_depth")
     depth_path = os.path.join(
-        str(root_path),
-        scene_bundle_depth,
-        *tail_name_split[1:]
-    ) 
-    return depth_path
+        root_path, depth_name
+    )[:-4]
+    return Path(depth_path)
 
 class CamLandmarkDataset(SceneDataset):
     data_path: Path
@@ -60,8 +62,8 @@ class CamLandmarkDataset(SceneDataset):
         # create depth images
         for img_path in tqdm(self.img_path_list):
             input_path = (self.data_path/img_path)
-            output_path = generate_depth_path(self.data_path,Path(input_path))
-            depth_solver.solo_generate_monodepth(input_path,output_path)
+            output_path = generate_depth_path(self.data_path,img_path)
+            depth_solver.solo_generate_monodepth(input_path,output_path,self.resize)
     
     @staticmethod
     def read_intrinsics(img_name: str, resize=None):
@@ -84,14 +86,7 @@ class CamLandmarkDataset(SceneDataset):
         """
         filename = "dataset_test.txt" if mode == "query" else "dataset_train.txt"
         poses = {}
-        scene_bundle_dir = [
-            dir for dir in os.listdir(root_path) if (
-                os.path.isdir(os.path.join(root_path,dir)) and 
-                '.' not in dir and 
-                "depth" not in dir
-            )
-        ]
-        for dir in scene_bundle_dir:
+        for dir in CAM_LANDMARK_SCENE_BUNDLE:
             with (root_path/dir/filename).open('r') as f:
                 for line in tqdm(f.readlines()):
                     if(".png" not in line): 
@@ -125,7 +120,7 @@ class CamLandmarkDataset(SceneDataset):
 
         #Load depth map into torch.tensor
         if self.estimated_depth is not None:
-            depth_path = generate_depth_path(self.data_path,(self.data_path/name))
+            depth_path = generate_depth_path(self.data_path,name)
             depth = read_depth_image(str(depth_path)+".png")
         else:
             depth = torch.tensor([])
@@ -135,6 +130,7 @@ class CamLandmarkDataset(SceneDataset):
         
         #Load rotation and translation
         q,t = self.poses[name]
+        q = qinverse(q)
         return Scene.create_dict(
             name,
             image,depth,

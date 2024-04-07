@@ -30,7 +30,9 @@ def get_img_name(row):
     month = str(row['month']).zfill(2)
     northdeg = str(row['northdeg']).zfill(3)
     lat, lon = str(row['lat']), str(row['lon'])
-    name = city+'_'+pl_id+'_'+year+'_'+month+'_' + \
+    sub_dir = str(row["sub_dir"]) + "/" if "sub_dir" in row.index else ""
+        
+    name = sub_dir+city+'_'+pl_id+'_'+year+'_'+month+'_' + \
         northdeg+'_'+lat+'_'+lon+'_'+panoid+'.jpg'
     return name
 

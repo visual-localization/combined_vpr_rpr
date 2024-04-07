@@ -11,23 +11,28 @@ from const import PITTS_RESIZE
 from .scene import Scene,SceneDataset,transform
 from depth_dpt import DPT_DepthModel
 
-def generate_depth_path(root_path:Path,img_path:Path)->Path:
-    # name = str(img_path)
-    # return Path(name.replace("input", "working")[:-4])
+def generate_depth_path(img_path:str)->str:
+    if 'queries' in str(img_path):
+        depth_path=img_path.replace("queries","queries_depth")[:-4]
+    else:
+        depth_path=img_path.replace("images","depths")[:-4]
+    return depth_path
 
-    name = str(img_path)
-    root_name = str(root_path)
-    tail_name = name[len(str(root_path)) + 1:]
-    head_name_split = root_name.split("/")
-    scene_bundle_depth = head_name_split[-1] + "_depth"
-    depth_path = os.path.join(
-        *head_name_split[:-1],
-        scene_bundle_depth,
-        tail_name
-    )
-    return Path("/" + depth_path[:-4])
+def join_db_img(root_dir,dbIm):
+    #root_dir: /pitts250k
+    [folder,name] = dbIm.split("/") #003/0003313
+    
+    img_parts = name[:-4].split("_")
+    split_info = int(img_parts[0])-int(folder)*1000
+    
+    new_index = int(split_info/250)
+    new_folder = f"00{new_index}" #000/001/002/003
+    new_path = os.path.join(f"{root_dir}_images_{str(folder)}",new_folder,name)
+    return new_path
+
 
 class Pittsburgh250kSceneDataset(SceneDataset):
+    set_name:str
     data_path: Path
     mode:str
     depth_solver: DPT_DepthModel
@@ -40,6 +45,7 @@ class Pittsburgh250kSceneDataset(SceneDataset):
 
     def __init__(
         self,
+        set_name:str,
         data_path:Path,
         resize:Optional[Tuple[int,int]]=None,
         transforms=None,
@@ -49,8 +55,8 @@ class Pittsburgh250kSceneDataset(SceneDataset):
     ):
         # Setup 
         self.mode = mode
-        self.data_path = data_path # /content/drive/MyDrive/Dataset/pittsburgh250k/data/images
-
+        self.data_path = data_path # /pitts250k
+        self.set_name = set_name # pitts250k_test
 
         # Additional Args
         self.resize = resize if resize is not None else PITTS_RESIZE
@@ -64,40 +70,32 @@ class Pittsburgh250kSceneDataset(SceneDataset):
 
         # create depth images
         for img_path in tqdm(self.img_path_list):
-            input_path = (self.data_path/img_path)
-            output_path = generate_depth_path(self.data_path,Path(input_path))
+            input_path = join_db_img(str(self.data_path),img_path)
+            output_path = generate_depth_path(input_path)
             # print(f"{img_path} {input_path} {output_path}")
             depth_solver.solo_generate_monodepth(input_path,output_path,self.resize)
-
-    @staticmethod
-    def alt_convert_zxy(point_xyz):
-        point_xyz[0], point_xyz[1], point_xyz[2] = point_xyz[0], -point_xyz[2], point_xyz[1]
-        return point_xyz
 
     @staticmethod
     def read_intrinsics(img_name: str, resize=None):
         """
         Read the intrinsics of a specific image, according to its name
         """
-        fx, fy, cx, cy, W, H = 768.000, 768.000, 320, 240, 640, 480
+        fx, fy, cx, cy, W, H = 768.000, 768.000, 320, 240, 648, 480
         K = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]], dtype=np.float32)
         if resize is not None:
             K = correct_intrinsic_scale(K, resize[0] / W, resize[1] / H)
         return K,W,H
 
-    @staticmethod
-    def read_poses(root_path: Path, mode:str) -> Dict[str,Tuple[np.ndarray,np.ndarray]]:
+    def read_poses(self, root_path: Path, mode:str) -> Dict[str,Tuple[np.ndarray,np.ndarray]]:
         """
         Returns a dictionary that maps: img_path -> (q, t) where
         np.array q = (qw, qx qy qz) quaternion encoding rotation matrix;
         np.array t = (tx ty tz) translation vector;
         (q, t) encodes absolute pose (world-to-camera), i.e. X_c = R(q) X_W + t
         """
-
-        filename = "pitts250k_test_query.txt"  if mode == "query" \
-            else "pitts250k_test_db.txt"
+        filename = os.path.join(root_path,"poses",f"{self.set_name}_{mode}.txt")
         poses = {}
-        with (root_path/filename).open('r') as f:
+        with (filename).open('r') as f:
             for line in tqdm(f.readlines()):
                 if(".jpg" not in line):
                     continue
@@ -126,11 +124,12 @@ class Pittsburgh250kSceneDataset(SceneDataset):
             index= self.img_path_list.index(name_idx)
 
         #Load image into torch.tensor
-        image = transform(str(self.data_path/name),self.resize)
+        image_path = join_db_img(str(self.data_path),name)
+        image = transform(image_path,self.resize)
 
         #Load depth map into torch.tensor
         if self.estimated_depth is not None:
-            depth_path = generate_depth_path(self.data_path,(self.data_path/name))
+            depth_path = generate_depth_path(image_path)
             depth = read_depth_image(str(depth_path)+".png")
         else:
             depth = torch.tensor([])
@@ -140,7 +139,6 @@ class Pittsburgh250kSceneDataset(SceneDataset):
 
         #Load rotation and translation
         q,t = self.poses[name]
-        # t = self.alt_convert_zxy(t)
         return Scene.create_dict(
             name,
             image,depth,
