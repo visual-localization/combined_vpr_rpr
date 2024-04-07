@@ -73,6 +73,7 @@ class RPR_Solver:
                 random_state=222,
                 sample_percent=0.5
             )
+
         elif(dataset == "Pittsburgh250k"):
             assert set_name is not None, "Please specify which set"
             self.db_dataset = Pittsburgh250kSceneDataset(

@@ -1,4 +1,4 @@
-import os, glob
+import os
 from pathlib import Path
 from typing import Optional,Dict,Tuple,Any, Union,List
 from tqdm import tqdm
@@ -76,11 +76,6 @@ class Pittsburgh250kSceneDataset(SceneDataset):
             depth_solver.solo_generate_monodepth(input_path,output_path,self.resize)
 
     @staticmethod
-    def alt_convert_zxy(point_xyz):
-        point_xyz[0], point_xyz[1], point_xyz[2] = point_xyz[0], -point_xyz[2], point_xyz[1]
-        return point_xyz
-
-    @staticmethod
     def read_intrinsics(img_name: str, resize=None):
         """
         Read the intrinsics of a specific image, according to its name
@@ -144,7 +139,6 @@ class Pittsburgh250kSceneDataset(SceneDataset):
 
         #Load rotation and translation
         q,t = self.poses[name]
-        t = self.alt_convert_zxy(t)
         return Scene.create_dict(
             name,
             image,depth,

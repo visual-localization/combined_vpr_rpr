@@ -68,4 +68,3 @@ PITTS = {
 CAM_LANDMARK = {
     "/cambridge_landmark": "Cambridge_Landmark"
 }
-

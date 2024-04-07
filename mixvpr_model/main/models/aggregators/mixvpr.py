@@ -34,6 +34,7 @@ class MixVPR(nn.Module):
                  mix_depth=1,
                  mlp_ratio=1,
                  out_rows=4,
+                 layers_to_freeze = 0
                  ) -> None:
         super().__init__()
 
@@ -49,8 +50,8 @@ class MixVPR(nn.Module):
 
         hw = in_h*in_w
         self.mix = nn.Sequential(*[
-            FeatureMixerLayer(in_dim=hw, mlp_ratio=mlp_ratio)
-            for _ in range(self.mix_depth)
+            FeatureMixerLayer(in_dim=hw, mlp_ratio=mlp_ratio).requires_grad_(False) if idx < layers_to_freeze else FeatureMixerLayer(in_dim=hw, mlp_ratio=mlp_ratio)
+            for idx in range(self.mix_depth)
         ])
         self.channel_proj = nn.Linear(in_channels, out_channels)
         self.row_proj = nn.Linear(hw, out_rows)
