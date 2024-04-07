@@ -140,7 +140,7 @@ class Pittsburgh250kSceneDataset(SceneDataset):
 
         #Load rotation and translation
         q,t = self.poses[name]
-        t = self.alt_convert_zxy(t)
+        # t = self.alt_convert_zxy(t)
         return Scene.create_dict(
             name,
             image,depth,
