@@ -76,7 +76,7 @@ class MatchingPipeline:
     def visualize(self,top_k_matches: np.ndarray,
                 query_dataset: SceneDataset,
                 database_dataset: SceneDataset,
-                visual_dir: str = './LOGS/visualize',
+                visual_dir: str = '/root/LOGS/visualize',
                 img_resize_size: Tuple = (320, 320)) -> None:
         if not os.path.exists(visual_dir):
             os.makedirs(visual_dir)
@@ -140,7 +140,7 @@ class InferencePipeline:
     def __init__(
         self, model:VPRModel, 
         dataset:SceneDataset, 
-        feature_dim:int, batch_size:int=4, num_workers:int=8, device:str='cuda'
+        feature_dim:int, batch_size:int=4, num_workers:int=5, device:str='cuda'
     ):
         self.model = model
         self.dataset = dataset
@@ -157,9 +157,9 @@ class InferencePipeline:
                                           drop_last=False)
 
     def run(self, split: str = 'db') -> np.ndarray:
-        if os.path.exists(f'./LOGS/global_descriptors_{split}.npy'):
+        if os.path.exists(f'/root/LOGS/global_descriptors_{split}.npy'):
             print(f"Skipping {split} features extraction, loading from cache")
-            return np.load(f'./LOGS/global_descriptors_{split}.npy')
+            return np.load(f'/root/LOGS/global_descriptors_{split}.npy')
 
         with torch.no_grad():
             global_descriptors = np.zeros((len(self.dataset), self.feature_dim))
@@ -181,7 +181,7 @@ class InferencePipeline:
                 global_descriptors[np.array(indices), :] = descriptors
 
         # save global descriptors
-        np.save(f'./LOGS/global_descriptors_{split}.npy', global_descriptors)
+        np.save(f'/root/LOGS/global_descriptors_{split}.npy', global_descriptors)
         return global_descriptors
 
     def forward(self):
