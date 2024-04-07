@@ -2,6 +2,7 @@ MAPFREE_RESIZE = (540,720)
 MIXVPR_RESIZE = (320,320)
 CAM_RESIZE = (852,480)
 GSV_RESIZE = (320,320)
+PITTS_RESIZE = (640,480)
 EMAT_RANSAC={
     "pix_threshold":2.0,
     "confidence":0.9999,

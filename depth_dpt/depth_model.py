@@ -82,7 +82,7 @@ class DPT_DepthModel:
             self.model = self.model.to(memory_format=torch.channels_last)
             self.model = self.model.half()
 
-        self.model.to(self.device)
+        self.model.eval().to(self.device)
     
     def generate_monodepth(self,img_path,resize):
         # input

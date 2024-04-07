@@ -9,10 +9,10 @@ from depth_dpt import DPT_DepthModel
 from mapfree import FeatureDepthModel,Pose
 from data import MapfreeDataset,CamLandmarkDataset,CamLandmarkDatasetPartial,GsvDatasetPartial,Pittsburgh250kSceneDataset
 from validation import validate_results
-from const import MAPFREE_RESIZE,CAM_RESIZE,GSV_RESIZE
+from const import MAPFREE_RESIZE,CAM_RESIZE,GSV_RESIZE,PITTS_RESIZE
 
 class RPR_Solver:
-    def __init__(self, db_path:Path, query_path:Path,dataset:str="Mapfree"):
+    def __init__(self, db_path:Path, query_path:Path,dataset:str="Mapfree",set_name=None):
         self.depth_solver = DPT_DepthModel()
         self.pose_solver = FeatureDepthModel(feature_matching="SuperGlue",pose_solver="EssentialMatrixMetric",dataset=dataset)
         self.dataset = dataset
@@ -74,13 +74,16 @@ class RPR_Solver:
                 sample_percent=0.5
             )
         elif(dataset == "Pittsburgh250k"):
+            assert set_name is not None, "Please specify which set"
             self.db_dataset = Pittsburgh250kSceneDataset(
+                set_name = set_name,
                 data_path=db_path,
                 resize = PITTS_RESIZE,
                 mode = "db",
                 depth_solver=self.depth_solver,
             )
             self.query_dataset = Pittsburgh250kSceneDataset(
+                set_name = set_name,
                 data_path=query_path,
                 resize = PITTS_RESIZE,
                 mode = "query",

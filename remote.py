@@ -33,7 +33,7 @@ vol_dict = {
     mounts=[Mount.from_local_dir("./", remote_path="/root/pipeline")],
     volumes=lookup_volume(vol_dict),
     _allow_background_volume_commits = True,
-    gpu="a10g",
+    gpu=gpu.A100(size="40GB"),
     timeout=86400,
     retries=0
 )
@@ -46,12 +46,12 @@ def entry():
     
     from main import RPR_Solver
     
-    PATH = "/cambridge_landmark/GreatCourt"
+    PATH = "/cambridge_landmark"
     
     test = RPR_Solver(
         db_path = Path(PATH),
         query_path = Path(PATH),
-        dataset = "CamLandmark_Partial"
+        dataset = "CamLandmark"
     )
     print("VPR Module: ")
     top_k_match = test.run_vpr(top_k=1)
