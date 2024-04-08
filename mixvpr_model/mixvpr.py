@@ -28,21 +28,53 @@ class MatchingPipeline:
 
     def load_model(self,ckpt_path:str):
         # Note that images must be resized to 320x320
-        model = VPRModel(backbone_arch='resnet50',
-                        layers_to_crop=[4],
-                        agg_arch='MixVPR',
-                        agg_config={'in_channels': 1024,
-                                    'in_h': 20,
-                                    'in_w': 20,
-                                    'out_channels': 1024,
-                                    'mix_depth': 4,
-                                    'mlp_ratio': 1,
-                                    'out_rows': 4},
-                        )
+        # model = VPRModel(
+        #     # ---- Encoder
+        #     backbone_arch="resnet50",
+        #     pretrained=True,
+        #     layers_to_freeze=3,
+        #     layers_to_crop=[4],  # 4 crops the last resnet layer, 3 crops the 3rd, ...etc
+        #     # ---- Aggregator
+        #     # agg_arch='CosPlace',
+        #     # agg_config={'in_dim': 2048,
+        #     #             'out_dim': 2048},
+        #     # agg_arch='GeM',
+        #     # agg_config={'p': 3},
+        #     # agg_arch='ConvAP',
+        #     # agg_config={'in_channels': 2048,
+        #     #             'out_channels': 2048},
+        #     agg_arch="MixVPR",
+        #     agg_config={
+        #         "in_channels": 1024,
+        #         "in_h": 20,
+        #         "in_w": 20,
+        #         "out_channels": 1024,
+        #         "mix_depth": 4,
+        #         "mlp_ratio": 1,
+        #         "out_rows": 4,
+        #         "layers_to_freeze":2
+        #     },  # the output dim will be (out_rows * out_channels)
+        #     # ---- Train hyperparameters
+        #     lr=0.01,  # 0.0002 for adam, 0.05 or sgd (needs to change according to batch size)
+        #     optimizer="sgd",  # sgd, adamw
+        #     weight_decay=0.001,  # 0.001 for sgd and 0 for adam,
+        #     momentum=0.9,
+        #     warmpup_steps=650,
+        #     milestones=[5, 10, 15, 25, 45],
+        #     lr_mult=0.3,
+        #     # ----- Loss functions
+        #     # example: ContrastiveLoss, TripletMarginLoss, MultiSimilarityLoss,
+        #     # FastAPLoss, CircleLoss, SupConLoss,
+        #     loss_name="MultiSimilarityLoss",
+        #     miner_name="CustomMultiSimilarityMiner",  # example: TripletMarginMiner, MultiSimilarityMiner, PairMarginMiner
+        #     miner_margin=0.1,
+        #     faiss_gpu=False,
+        # )
 
-        state_dict = torch.load(ckpt_path, map_location=torch.device(self.device))
-        model.load_state_dict(state_dict)
-
+        # state_dict = torch.load(ckpt_path, map_location=torch.device(self.device))
+        # model.load_state_dict(state_dict)
+        
+        model = VPRModel.load_from_checkpoint(ckpt_path)
         model.eval()
         model.to(self.device)
         print(f"Loaded model from {ckpt_path} Successfully!")
@@ -76,7 +108,7 @@ class MatchingPipeline:
     def visualize(self,top_k_matches: np.ndarray,
                 query_dataset: SceneDataset,
                 database_dataset: SceneDataset,
-                visual_dir: str = './LOGS/visualize',
+                visual_dir: str = '/root/LOGS/visualize',
                 img_resize_size: Tuple = (320, 320)) -> None:
         if not os.path.exists(visual_dir):
             os.makedirs(visual_dir)
@@ -140,7 +172,7 @@ class InferencePipeline:
     def __init__(
         self, model:VPRModel, 
         dataset:SceneDataset, 
-        feature_dim:int, batch_size:int=4, num_workers:int=8, device:str='cuda'
+        feature_dim:int, batch_size:int=4, num_workers:int=5, device:str='cuda'
     ):
         self.model = model
         self.dataset = dataset
@@ -157,9 +189,9 @@ class InferencePipeline:
                                           drop_last=False)
 
     def run(self, split: str = 'db') -> np.ndarray:
-        if os.path.exists(f'./LOGS/global_descriptors_{split}.npy'):
+        if os.path.exists(f'/root/LOGS/global_descriptors_{split}.npy'):
             print(f"Skipping {split} features extraction, loading from cache")
-            return np.load(f'./LOGS/global_descriptors_{split}.npy')
+            return np.load(f'/root/LOGS/global_descriptors_{split}.npy')
 
         with torch.no_grad():
             global_descriptors = np.zeros((len(self.dataset), self.feature_dim))
@@ -181,7 +213,7 @@ class InferencePipeline:
                 global_descriptors[np.array(indices), :] = descriptors
 
         # save global descriptors
-        np.save(f'./LOGS/global_descriptors_{split}.npy', global_descriptors)
+        np.save(f'/root/LOGS/global_descriptors_{split}.npy', global_descriptors)
         return global_descriptors
 
     def forward(self):

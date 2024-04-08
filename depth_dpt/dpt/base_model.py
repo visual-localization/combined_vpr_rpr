@@ -1,5 +1,6 @@
 import torch
 
+device='cuda' if torch.cuda.is_available() else 'cpu'
 
 class BaseModel(torch.nn.Module):
     def load(self, path):
@@ -8,7 +9,7 @@ class BaseModel(torch.nn.Module):
         Args:
             path (str): file path
         """
-        parameters = torch.load(path, map_location=torch.device("cpu"))
+        parameters = torch.load(path, map_location=torch.device(device))
 
         if "optimizer" in parameters:
             parameters = parameters["model"]

@@ -10,8 +10,7 @@ from tqdm import tqdm
 
 import numpy as np
 
-
-from data import SceneDataset,Scene
+from data import SceneDataset, Scene
 from validation.utils import precision_recall
 from validation.metrics import MetricManager, Inputs
 import validation.config as config
@@ -20,50 +19,81 @@ from utils import extract_scene_label
 from const import CAM_LANDMARK_SCENE_BUNDLE
 
 
-
-def compute_scene_metrics(estimated_pose:Pose,query_scene:Scene,dataset:str):
+def compute_scene_metrics(estimated_pose: Pose, query_scene: Scene, dataset: str):
     metric_manager = MetricManager()
 
     # failures encode how many images that match to the wrong database image
     failures = 0
-    
+
     # Results encoded as dict
     # key: metric name; value: list of values (one per frame).
     # e.g. results['t_err'] = [1.2, 0.3, 0.5, ...]
     results = defaultdict(list)
 
     # compute metrics per frame
-    if(dataset == "Mapfree"):
+    if (dataset == "Mapfree"):
         if extract_scene_label(estimated_pose.anchor) != extract_scene_label(query_scene["name"]):
             failures += 1
             return results, failures
-    elif("CamLandmark" in dataset):
+    elif ("CamLandmark" in dataset):
         for bundle in CAM_LANDMARK_SCENE_BUNDLE:
             query_bundle_bool = bundle in query_scene["name"]
             anchor_bundle_bool = bundle in estimated_pose.anchor
-            if(query_bundle_bool != anchor_bundle_bool):
+            if (query_bundle_bool != anchor_bundle_bool):
                 failures += 1
                 return results, failures
-    elif("GSV" in dataset):
+    elif ("GSV" in dataset):
         [city_ref, place_id_ref] = estimated_pose.anchor.split("_")[:2]
-        [city_query,place_id_query] = query_scene["name"].split("_")[:2]
-        if(not (city_ref == city_query and place_id_query == place_id_ref)):
+        [city_query, place_id_query] = query_scene["name"].split("_")[:2]
+        if (not (city_ref == city_query and place_id_query == place_id_ref)):
             failures += 1
-            return results, failures    
+            return results, failures
+    elif ("Pittsburgh" in dataset):
+        q_est, t_est = estimated_pose.R, estimated_pose.t
+        q_gt, t_gt = query_scene["rotation"], query_scene["translation"]
+
+        if q_gt.shape != (4,) or q_est.shape != (4,) \
+                or t_gt.shape != (3,) or t_est.shape != (3,):
+            failures += 1
+            return results, failures
+
+        t_est[1], t_est[2] = -t_est[2], t_est[1]
+        t_gt[1], t_gt[2] = -t_gt[2], t_gt[1]
+
+        dist = np.linalg.norm(t_est - t_gt)
+        if dist >= 25:
+            failures += 1
+            return results, failures
+        else:
+            inputs = Inputs(
+                q_gt=q_gt, t_gt=t_gt,
+                q_est=q_est, t_est=t_est,
+                confidence=estimated_pose.inliers,
+                K=query_scene["intrinsics_matrix"],
+                W=query_scene["width"], H=query_scene["height"]
+            )
+            metric_manager(inputs, results)
+
+            return results, failures
     else:
         raise NotImplementedError("No validation condition for this dataset was implemented")
-    
-    
+
     q_est, t_est = estimated_pose.R, estimated_pose.t
-    q_gt, t_gt = query_scene["rotation"],query_scene["translation"]
+    q_gt, t_gt = query_scene["rotation"], query_scene["translation"]
+
+    if q_gt.shape != (4,) or q_est.shape != (4,) \
+            or t_gt.shape != (3,) or t_est.shape != (3,):
+        failures += 1
+        return results, failures
+
     inputs = Inputs(
         q_gt=q_gt, t_gt=t_gt,
-        q_est=q_est,t_est=t_est,
+        q_est=q_est, t_est=t_est,
         confidence=estimated_pose.inliers,
-        K = query_scene["intrinsics_matrix"],
-        W = query_scene["width"], H = query_scene["height"]
+        K=query_scene["intrinsics_matrix"],
+        W=query_scene["width"], H=query_scene["height"]
     )
-    metric_manager(inputs,results)
+    metric_manager(inputs, results)
 
     return results, failures
 
@@ -85,7 +115,7 @@ def aggregate_results(all_results, all_failures):
 
     # compute precision/AUC for pose error and reprojection errors
     accepted_poses = (all_metrics['trans_err'] < config.t_threshold) * \
-        (all_metrics['rot_err'] < config.R_threshold)
+                     (all_metrics['rot_err'] < config.R_threshold)
     accepted_vcre = all_metrics['reproj_err'] < config.vcre_threshold
     total_samples = len(next(iter(all_metrics.values()))) + all_failures
 
@@ -103,8 +133,8 @@ def aggregate_results(all_results, all_failures):
     output_metrics['Average Median Translation Error'] = avg_median_metrics['trans_err']
     output_metrics['Average Median Rotation Error'] = avg_median_metrics['rot_err']
     output_metrics['Average Median Reprojection Error'] = avg_median_metrics['reproj_err']
-    output_metrics[f'Precision @ Pose Error < ({config.t_threshold*100}cm, {config.R_threshold}deg)'] = prec_pose
-    output_metrics[f'AUC @ Pose Error < ({config.t_threshold*100}cm, {config.R_threshold}deg)'] = auc_pose
+    output_metrics[f'Precision @ Pose Error < ({config.t_threshold * 100}cm, {config.R_threshold}deg)'] = prec_pose
+    output_metrics[f'AUC @ Pose Error < ({config.t_threshold * 100}cm, {config.R_threshold}deg)'] = auc_pose
     output_metrics[f'Precision @ VCRE < {config.vcre_threshold}px'] = prec_vcre
     output_metrics[f'AUC @ VCRE < {config.vcre_threshold}px'] = auc_vcre
     output_metrics[f'Estimates for % of frames'] = len(all_metrics['trans_err']) / total_samples
@@ -118,26 +148,25 @@ def count_unexpected_scenes(scenes: tuple, submission_zip: ZipFile):
 
 
 def validate_results(
-    final_pose:Dict[str,Pose],
-    query_dataset:SceneDataset,
-    dataset:str
+        final_pose: Dict[str, Pose],
+        query_dataset: SceneDataset,
+        dataset: str
 ):
     all_results = dict()
     all_failures = 0
-    
+
     for scene_name in tqdm(final_pose.keys()):
         metrics, failures = compute_scene_metrics(
             final_pose[scene_name],
             query_dataset[scene_name][0],
             dataset
         )
-        if(failures==1):
-          all_failures += failures
+        if (failures == 1):
+            all_failures += failures
         else:
-          all_results[scene_name] = metrics
-        
-    
-    print(f"VPR success rate: {1-(all_failures/len(final_pose))}")
+            all_results[scene_name] = metrics
+
+    print(f"VPR success rate: {1 - (all_failures / len(final_pose))}")
     output_metrics = aggregate_results(all_results, all_failures)
     output_json = json.dumps(output_metrics, indent=2)
     print(output_json)

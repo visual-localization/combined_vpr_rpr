@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from typing import Optional,Dict,Tuple,Any, Union,List
 from tqdm import tqdm
+from transforms3d.quaternions import qinverse
 
 import torch
 import numpy as np
@@ -16,18 +17,16 @@ from depth_dpt import DPT_DepthModel
 # t1[0],t1[2],t1[1] = t1_temp[1],t1_temp[0],-t1_temp[2]
 # t2[0],t2[2],t2[1] = t2_temp[1],t2_temp[0],-t2_temp[2]
 
-def generate_depth_path(root_path:Path,img_path:Path)->Path:
-    name = str(img_path)
-    root_name = str(root_path)
-    tail_name = name[len(str(root_path))+1:]
-    head_name_split = root_name.split("/")
-    scene_bundle_depth = head_name_split[-1] + "_depth"
+def generate_depth_path(root_path:Path,name:Path)->Path:
+    name = str(name)
+    root_path = str(root_path)
+    
+    scene_bundle = root_path.split("/")[-1]
+    depth_root = root_path.replace(scene_bundle,f"{scene_bundle}_depth")
     depth_path = os.path.join(
-        *head_name_split[:-1],
-        scene_bundle_depth,
-        tail_name
-    ) 
-    return Path("/" + depth_path[:-4])
+        depth_root, name
+    )[:-4]
+    return Path(depth_path)
 
 class CamLandmarkDatasetPartial(SceneDataset):
     data_path: Path
@@ -67,7 +66,7 @@ class CamLandmarkDatasetPartial(SceneDataset):
         # create depth images
         for img_path in tqdm(self.img_path_list):
             input_path = (self.data_path/img_path)
-            output_path = generate_depth_path(self.data_path,Path(input_path))
+            output_path = generate_depth_path(self.data_path,Path(img_path))
             depth_solver.solo_generate_monodepth(input_path,output_path,self.resize)
         
     
@@ -126,7 +125,7 @@ class CamLandmarkDatasetPartial(SceneDataset):
 
         #Load depth map into torch.tensor
         if self.estimated_depth is not None:
-            depth_path = generate_depth_path(self.data_path,(self.data_path/name))
+            depth_path = generate_depth_path(self.data_path,name)
             depth = read_depth_image(str(depth_path)+".png")
         else:
             depth = torch.tensor([])
@@ -136,6 +135,7 @@ class CamLandmarkDatasetPartial(SceneDataset):
         
         #Load rotation and translation
         q,t = self.poses[name]
+        q = qinverse(q)
         return Scene.create_dict(
             name,
             image,depth,
