@@ -57,8 +57,8 @@ def compute_scene_metrics(estimated_pose: Pose, query_scene: Scene, dataset: str
             failures += 1
             return results, failures
 
-        t_est[1], t_est[2] = -t_est[2], t_est[1]
-        t_gt[1], t_gt[2] = -t_gt[2], t_gt[1]
+        # t_est[1], t_est[2] = -t_est[2], t_est[1]
+        # t_gt[1], t_gt[2] = -t_gt[2], t_gt[1]
 
         dist = np.linalg.norm(t_est - t_gt)
         if dist >= 25:
