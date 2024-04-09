@@ -1,1 +1,1 @@
-from .essmat import FeatureDepthModel,Pose
+from .essmat import FeatureDepthModel,Pose,NaivePoseModel

@@ -25,7 +25,7 @@ vol_dict = {
     # **GSV,
     # **PITTS,
     **CAM_LANDMARK,
-    "/root/LOGS": "MixVPR_LOGS"
+    "/root/LOGS": "Scratch_LOGS"
 }
 
 @stub.function(
@@ -33,7 +33,7 @@ vol_dict = {
     mounts=[Mount.from_local_dir("./", remote_path="/root/pipeline")],
     volumes=lookup_volume(vol_dict),
     _allow_background_volume_commits = True,
-    gpu=gpu.A100(size="40GB"),
+    gpu="a10g",
     timeout=86400,
     retries=0
 )
@@ -45,13 +45,17 @@ def entry():
     os.chdir("/root/pipeline")
     
     from main import RPR_Solver
+    import torch
     
-    PATH = "/cambridge_landmark"
+    PATH = "/cambridge_landmark/ShopFacade"
+    torch.hub.set_dir("/root/LOGS/torch_cache")
     
     test = RPR_Solver(
         db_path = Path(PATH),
         query_path = Path(PATH),
-        dataset = "CamLandmark"
+        dataset = "CamLandmark_Partial",
+        vpr_type = "AnyLoc",
+        vpr_only=True
     )
     print("VPR Module: ")
     top_k_match = test.run_vpr(top_k=1)

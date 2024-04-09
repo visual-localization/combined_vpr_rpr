@@ -4,18 +4,19 @@ from typing import Tuple,Dict,List
 import torchvision.transforms as tvf
 import torch
 
-from mixvpr_model import MatchingPipeline
+from vpr_model import MatchingPipeline
 from depth_dpt import DPT_DepthModel
-from mapfree import FeatureDepthModel,Pose
+from mapfree import FeatureDepthModel,Pose,NaivePoseModel
 from data import MapfreeDataset,CamLandmarkDataset,CamLandmarkDatasetPartial,GsvDatasetPartial,Pittsburgh250kSceneDataset
 from validation import validate_results
 from const import MAPFREE_RESIZE,CAM_RESIZE,GSV_RESIZE,PITTS_RESIZE
 
 class RPR_Solver:
-    def __init__(self, db_path:Path, query_path:Path,dataset:str="Mapfree",set_name=None):
+    def __init__(self, db_path:Path, query_path:Path,dataset:str="Mapfree",set_name=None,vpr_only=False,vpr_type="MixVPR"):
         self.depth_solver = DPT_DepthModel()
-        self.pose_solver = FeatureDepthModel(feature_matching="SuperGlue",pose_solver="EssentialMatrixMetric",dataset=dataset)
+        self.pose_solver = FeatureDepthModel(feature_matching="SuperGlue",pose_solver="EssentialMatrixMetric",dataset=dataset) if not vpr_only else NaivePoseModel()
         self.dataset = dataset
+        self.vpr_type = vpr_type
         
         if(dataset == "Mapfree"):
             #Prepare depth image
@@ -104,7 +105,8 @@ class RPR_Solver:
         #Run VPR
         matcher = MatchingPipeline(
             ckpt_path="/root/LOGS/init.ckpt",
-            device='cuda' if torch.cuda.is_available() else 'cpu'
+            device='cuda' if torch.cuda.is_available() else 'cpu',
+            vpr_type=self.vpr_type
         )
         top_k_matches = matcher.run(
             query_dataset=self.query_dataset,

@@ -1,0 +1,1 @@
+from .anyloc import AnyLocVPR,FEATURE_DIM
