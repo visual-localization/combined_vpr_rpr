@@ -100,14 +100,14 @@ class Pittsburgh250kSceneDataset(SceneDataset):
         """
         filename = os.path.join(root_path,"poses",f"{self.set_name}_{mode}.txt")
         poses = {}
-        with (filename).open('r') as f:
+        with Path(filename).open('r') as f:
             for line in tqdm(f.readlines()):
                 if(".jpg" not in line):
                     continue
                 line = line.strip().split(" ")
                 img_name = line[0] # img_name = seq5/frame00587.png
                 qt = np.array(list(map(float, line[1:])))
-                t = Pittsburgh250kSceneDataset.alt_convert_zxy(t)
+                qt[:3] = Pittsburgh250kSceneDataset.alt_convert_zxy(qt[:3])
                 poses[img_name] = (qt[3:],qt[:3])
         return poses
 
