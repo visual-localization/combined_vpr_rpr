@@ -12,6 +12,7 @@ import cv2
 
 from .main import VPRModel
 from .anyloc import AnyLocVPR,FEATURE_DIM
+from .netvlad import NetVLADModel
 from data import SceneDataset,Scene
 from const import MIXVPR_RESIZE
 
@@ -32,9 +33,24 @@ class MatchingPipeline:
             num_c = 8
             self.feature_dim = FEATURE_DIM[num_c]
             self.model = self.load_model_anyloc(num_c=num_c)
+        elif(vpr_type == "NetVLAD"):
+            assert ckpt_path is not None, "Please provide a path for NetVLAD Model"
+            self.feature_dim = 32768
+            self.model = self.load_model_netvlad(ckpt_path=ckpt_path)
         else:
             raise NotImplementedError()
 
+    def load_model_netvlad(self,ckpt_path):
+        model = NetVLADModel(
+            arch="vgg16",
+            pooling="netvlad",
+            pararell=True
+        ).eval()
+        checkpoint = torch.load(ckpt_path, map_location=torch.device(self.device))
+        model.load_state_dict(checkpoint["state_dict"])
+        model = model.to(self.device)
+        
+        return model
 
     def load_model_mixvpr(self,ckpt_path:str):
         model = VPRModel(backbone_arch='resnet50',

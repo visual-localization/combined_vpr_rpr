@@ -103,8 +103,14 @@ class RPR_Solver:
 
     def run_vpr(self,top_k=10)->Dict[str,List[str]]:
         #Run VPR
+        ckpt_path = ""
+        if(self.vpr_type == "MixVPR"):
+            ckpt_path ="/root/LOGS/init.ckpt"
+        elif(self.vpr_type == "NetVLAD"):
+            ckpt_path ="/root/LOGS/checkpoint.pth.tar"
+        
         matcher = MatchingPipeline(
-            ckpt_path="/root/LOGS/init.ckpt",
+            ckpt_path=ckpt_path,
             device='cuda' if torch.cuda.is_available() else 'cpu',
             vpr_type=self.vpr_type
         )
