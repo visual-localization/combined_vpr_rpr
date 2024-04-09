@@ -11,7 +11,6 @@ from .utils import correct_intrinsic_scale,read_depth_image
 from const import CAM_RESIZE,CAM_LANDMARK_SCENE_BUNDLE
 from .scene import Scene,SceneDataset,transform
 from depth_dpt import DPT_DepthModel
-from utils import convert_world2cam_to_cam2world
 
 def generate_depth_path(root_path:Path,name:Path)->Path:
     #root_path: /.../Cambridge_Landmark/    img_path: GreatCourt/seq001/framexxx.jpg
