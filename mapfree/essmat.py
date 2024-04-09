@@ -96,6 +96,33 @@ class FeatureDepthModel:
             anchor=db_img["name"]
         )
 
-        
-        
-        
+class NaivePoseModel:
+    def __init__(
+        self
+    ):
+        pass
+    
+    def process_top_k(
+        self,
+        db_dataset:SceneDataset,
+        query_dataset:SceneDataset,
+        top_k:Dict[str,List[str]]
+    )->Dict[str,Pose]:
+        final_pose = {}
+        for query_key in tqdm(top_k.keys()):
+            final_pose[query_key] = self.process_pair(query_dataset[query_key][0],db_dataset[top_k[query_key][0]][0])
+        return final_pose
+    
+    def process_pair(
+        self,
+        query_img: Scene,
+        db_img: Scene
+    )->Pose:
+        R_final = db_img["rotation"]
+        t_final = db_img["translation"]
+        return Pose(
+            R=R_final,
+            t=t_final,
+            inliers=1,
+            anchor=db_img["name"]
+        )
