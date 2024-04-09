@@ -54,7 +54,7 @@ def entry():
         db_path = Path(PATH),
         query_path = Path(PATH),
         dataset = "CamLandmark_Partial",
-        vpr_type = "AnyLoc",
+        vpr_type = "NetVLAD",
         vpr_only=True
     )
     print("VPR Module: ")
