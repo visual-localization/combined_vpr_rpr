@@ -33,7 +33,7 @@ vol_dict = {
     mounts=[Mount.from_local_dir("./", remote_path="/root/pipeline")],
     volumes=lookup_volume(vol_dict),
     _allow_background_volume_commits = True,
-    gpu="a10g",
+    gpu=gpu.A100(size="40GB"),
     timeout=86400,
     retries=0
 )
@@ -49,14 +49,14 @@ def entry():
     
     PATH = "/pitts250k"
     torch.hub.set_dir("/root/LOGS/torch_cache")
-    
+    os.makedirs("/root/LOGS/vpr_cache", exist_ok=True)
     test = RPR_Solver(
         db_path = Path(PATH),
         query_path = Path(PATH),
         set_name="pitts250k_test",
         dataset = "Pittsburgh250k",
         vpr_type = "MixVPR",
-        vpr_only = False
+        vpr_only = True
     )
     print("VPR Module: ")
     top_k_match = test.run_vpr(top_k=1)
