@@ -74,8 +74,6 @@ class Pittsburgh250kSceneDataset(SceneDataset):
         for img_path in tqdm(self.img_path_list):
             input_path = join_db_img(str(self.data_path),img_path) if self.mode=="db" else os.path.join(self.queries_dir,img_path)
             output_path = generate_depth_path(input_path)
-            if(mode == "query"):
-                print(f"{input_path}----{output_path}")
             # print(f"{img_path} {input_path} {output_path}")
             depth_solver.solo_generate_monodepth(input_path,output_path,self.resize)
 
