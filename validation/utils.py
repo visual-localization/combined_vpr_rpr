@@ -40,7 +40,9 @@ def quat_angle_error(label, pred, variant=VARIANTS_ANGLE_SIN) -> np.ndarray:
         # https://www.researchgate.net/post/How_do_I_calculate_the_smallest_angle_between_two_quaternions/5d6ed4a84f3a3e1ed3656616/citation/download
         sine = qmult(q1[0], qinverse(q2[0]))  # note: takes first element in 2D array
         # 114.59 = 2. * 180. / pi
-        angle = np.arcsin(np.linalg.norm(sine[1:], keepdims=True)) * 114.59155902616465
+        sin = np.linalg.norm(sine[1:], keepdims=True)
+        sin = min(sin,1) if sin>=0 else max(sin,-1)
+        angle = np.arcsin(sin) * 114.59155902616465
         angle = np.expand_dims(angle, axis=0)
 
     return angle.astype(np.float64)
