@@ -58,6 +58,8 @@ class Pittsburgh250kSceneDataset(SceneDataset):
         self.data_path = data_path # /pitts250k
         self.set_name = set_name # pitts250k_test
 
+        self.queries_dir = f"{str(self.data_path)}_queries_real"
+    
         # Additional Args
         self.resize = resize if resize is not None else PITTS_RESIZE
         self.transforms=transforms
@@ -70,7 +72,7 @@ class Pittsburgh250kSceneDataset(SceneDataset):
 
         # create depth images
         for img_path in tqdm(self.img_path_list):
-            input_path = join_db_img(str(self.data_path),img_path)
+            input_path = join_db_img(str(self.data_path),img_path) if self.mode=="db" else os.path.join(self.queries_dir,img_path)
             output_path = generate_depth_path(input_path)
             # print(f"{img_path} {input_path} {output_path}")
             depth_solver.solo_generate_monodepth(input_path,output_path,self.resize)
@@ -130,7 +132,7 @@ class Pittsburgh250kSceneDataset(SceneDataset):
             index= self.img_path_list.index(name_idx)
 
         #Load image into torch.tensor
-        image_path = join_db_img(str(self.data_path),name)
+        image_path = join_db_img(str(self.data_path),name)  if self.mode=="db" else os.path.join(self.queries_dir,name)
         image = transform(image_path,self.resize)
 
         #Load depth map into torch.tensor

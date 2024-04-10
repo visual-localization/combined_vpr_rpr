@@ -11,7 +11,7 @@ def lookup_volume(data_dict:Dict[str,str]):
     return dict((k, Volume.lookup(v)) for k, v in data_dict.items())
     
 stub = Stub(
-    name="Pipeline Commenced"
+    name="Pipeline MixVPR VPR+RPR"
 )
 
 image = (
@@ -23,9 +23,9 @@ image = (
 
 vol_dict = {
     # **GSV,
-    # **PITTS,
+    **PITTS,
     **CAM_LANDMARK,
-    "/root/LOGS": "Scratch_LOGS"
+    "/root/LOGS": "Pitts250k_Pipeline_LOGS"
 }
 
 @stub.function(
@@ -47,19 +47,20 @@ def entry():
     from main import RPR_Solver
     import torch
     
-    PATH = "/cambridge_landmark/ShopFacade"
+    PATH = "/pitts250k"
     torch.hub.set_dir("/root/LOGS/torch_cache")
     
     test = RPR_Solver(
         db_path = Path(PATH),
         query_path = Path(PATH),
-        dataset = "CamLandmark_Partial",
-        vpr_type = "NetVLAD",
-        vpr_only=True
+        set_name="pitts250k_test",
+        dataset = "Pittsburgh250k",
+        vpr_type = "MixVPR",
+        vpr_only = False
     )
     print("VPR Module: ")
     top_k_match = test.run_vpr(top_k=1)
     print("RPR Module: ")
     final_poses = test.run_rpr(top_k_match)
     print("Validation Step:")
-    print(test.validation(final_poses))
+    test.validation(final_poses)

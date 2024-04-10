@@ -68,7 +68,10 @@ class FeatureDepthModel:
     )->Dict[str,Pose]:
         final_pose = {}
         for query_key in tqdm(top_k.keys()):
-            res = [self.process_pair(query_dataset[query_key][0],db_dataset[db_key][0]) for db_key in top_k[query_key]]
+            res = [self.process_pair(
+                query_dataset[query_key][0],
+                db_dataset[db_key][0]
+            ) for db_key in top_k[query_key]]
             max_pose = max(res, key=lambda item:item.inliers)
             final_pose[query_key] = max_pose
         return final_pose
@@ -110,7 +113,10 @@ class NaivePoseModel:
     )->Dict[str,Pose]:
         final_pose = {}
         for query_key in tqdm(top_k.keys()):
-            final_pose[query_key] = self.process_pair(query_dataset[query_key][0],db_dataset[top_k[query_key][0]][0])
+            final_pose[query_key] = self.process_pair(
+                query_dataset[query_key][0],
+                db_dataset[top_k[query_key][0]][0]
+            )
         return final_pose
     
     def process_pair(
@@ -123,6 +129,6 @@ class NaivePoseModel:
         return Pose(
             R=R_final,
             t=t_final,
-            inliers=1,
+            inliers=100,
             anchor=db_img["name"]
         )

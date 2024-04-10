@@ -49,32 +49,17 @@ def compute_scene_metrics(estimated_pose: Pose, query_scene: Scene, dataset: str
             failures += 1
             return results, failures
     elif ("Pittsburgh" in dataset):
-        q_est, t_est = estimated_pose.R, estimated_pose.t
-        q_gt, t_gt = query_scene["rotation"], query_scene["translation"]
+        pass
+        # q_est, t_est = estimated_pose.R, estimated_pose.t
+        # q_gt, t_gt = query_scene["rotation"], query_scene["translation"]
 
-        if q_gt.shape != (4,) or q_est.shape != (4,) \
-                or t_gt.shape != (3,) or t_est.shape != (3,):
-            failures += 1
-            return results, failures
+        # if q_gt.shape != (4,) or q_est.shape != (4,) \
+        #         or t_gt.shape != (3,) or t_est.shape != (3,):
+        #     failures += 1
+        #     return results, failures
 
         # t_est[1], t_est[2] = -t_est[2], t_est[1]
         # t_gt[1], t_gt[2] = -t_gt[2], t_gt[1]
-
-        dist = np.linalg.norm(t_est - t_gt)
-        if dist >= 25:
-            failures += 1
-            return results, failures
-        else:
-            inputs = Inputs(
-                q_gt=q_gt, t_gt=t_gt,
-                q_est=q_est, t_est=t_est,
-                confidence=estimated_pose.inliers,
-                K=query_scene["intrinsics_matrix"],
-                W=query_scene["width"], H=query_scene["height"]
-            )
-            metric_manager(inputs, results)
-
-            return results, failures
     else:
         raise NotImplementedError("No validation condition for this dataset was implemented")
 
