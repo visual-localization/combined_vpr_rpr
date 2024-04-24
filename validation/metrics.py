@@ -52,7 +52,17 @@ class MetricManager:
     @staticmethod
     @_metrics.register
     def rot_err(inputs: Inputs, variant: str = VARIANTS_ANGLE_SIN) -> np.float64:
-        return quat_angle_error(label=inputs.q_est, pred=inputs.q_gt, variant=variant)[0, 0]
+        res = quat_angle_error(label=inputs.q_est, pred=inputs.q_gt, variant=variant)
+        try:
+            return res[0, 0]
+        except:
+            print(f"{inputs.q_est}---{inputs.q_gt}")
+            print(quat_angle_error(label=inputs.q_est, pred=inputs.q_gt, variant=variant))
+            try:
+                return res[0]
+            except:
+                print("Desperate Time")
+                return 90
 
     @staticmethod
     @_metrics.register

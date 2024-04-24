@@ -1,1 +1,1 @@
-from .mixvpr import MatchingPipeline
+from .mixvpr import MatchingPipeline,VPRModel

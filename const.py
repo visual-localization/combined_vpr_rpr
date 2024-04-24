@@ -13,7 +13,7 @@ PNP = {
     "reprojection_inlier_threshold":3,
     "confidence":0.9999
 }
-FRUSTUM_THRESHOLD = 1.95
+FRUSTUM_THRESHOLD = 1.25
 ANGLE_THRESHOLD = 80
 CAM_LANDMARK_SCENE_BUNDLE = [
     "GreatCourt",

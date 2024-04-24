@@ -1,10 +1,12 @@
 from pathlib import Path
 from typing import Tuple,Dict,List
+from tqdm import tqdm
 
 import torchvision.transforms as tvf
 import torch
+import numpy as np
 
-from vpr_model import MatchingPipeline
+from vpr_model import MatchingPipeline,VPRModel
 from depth_dpt import DPT_DepthModel
 from mapfree import FeatureDepthModel,Pose,NaivePoseModel
 from data import MapfreeDataset,CamLandmarkDataset,CamLandmarkDatasetPartial,GsvDatasetPartial,Pittsburgh250kSceneDataset
@@ -15,6 +17,7 @@ class RPR_Solver:
     def __init__(self, db_path:Path, query_path:Path,dataset:str="Mapfree",set_name=None,vpr_only=False,vpr_type="MixVPR"):
         self.depth_solver = DPT_DepthModel()
         self.pose_solver = FeatureDepthModel(feature_matching="SuperGlue",pose_solver="EssentialMatrixMetric",dataset=dataset) if not vpr_only else NaivePoseModel()
+        self.reranker = self.load_reranker("epoch(08).ckpt")
         self.dataset = dataset
         self.vpr_type = vpr_type
         
@@ -138,7 +141,22 @@ class RPR_Solver:
     ):
         validate_results(final_pose,self.query_dataset,self.dataset)
         
+    def load_reranker(self,reranker_path:str):
+        return VPRModel.load_from_checkpoint(reranker_path).eval()
+    
+    def rerank(self,top_k_matches,rerank_k):
+        res = {}
         
+        for key,vals in tqdm(top_k_matches.items()):
+            images = torch.stack([self.query_dataset[key][0]["image"]] + [self.db_dataset[val][0]["image"] for val in vals])
+            embeddings = self.reranker(images)
+            similarity_matrix = embeddings[0].reshape(1,-1)@embeddings[1:].T  # shape: (1, top_k)
+
+            # compute top-k matches
+            rerank_top_k = np.argsort(-similarity_matrix, axis=1)[:, :rerank_k]  # shape: (num_query_images, 10)
+            res[key] = [vals[db_idx] for db_idx in rerank_top_k]
+        
+        return res
         
     def prep_dataset(self,data_path:Path,dataset:str,resize):
         self.depth_solver.img_db_process(data_path,dataset,resize)
