@@ -11,7 +11,7 @@ from depth_dpt import DPT_DepthModel
 from mapfree import FeatureDepthModel,Pose,NaivePoseModel
 from data import MapfreeDataset,CamLandmarkDataset,CamLandmarkDatasetPartial,GsvDatasetPartial,Pittsburgh250kSceneDataset
 from validation import validate_results
-from const import MAPFREE_RESIZE,CAM_RESIZE,GSV_RESIZE,PITTS_RESIZE
+from const import MAPFREE_RESIZE,CAM_RESIZE,GSV_RESIZE,PITTS_RESIZE,MIXVPR_RESIZE
 
 class RPR_Solver:
     def __init__(self, db_path:Path, query_path:Path,dataset:str="Mapfree",set_name=None,vpr_only=False,vpr_type="MixVPR"):
@@ -146,16 +146,22 @@ class RPR_Solver:
     
     def rerank(self,top_k_matches,rerank_k):
         res = {}
-        
+        transforms = tvf.Compose([
+            tvf.Resize(MIXVPR_RESIZE, interpolation=tvf.InterpolationMode.BICUBIC),
+            tvf.Normalize([0.485, 0.456, 0.406],
+                        [0.229, 0.224, 0.225])
+        ])
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
         for key,vals in tqdm(top_k_matches.items()):
             images = torch.stack([self.query_dataset[key][0]["image"]] + [self.db_dataset[val][0]["image"] for val in vals])
+            images = transforms(images)
+            images = images.to(device)
             embeddings = self.reranker(images)
             similarity_matrix = embeddings[0].reshape(1,-1)@embeddings[1:].T  # shape: (1, top_k)
-
+            
             # compute top-k matches
-            rerank_top_k = np.argsort(-similarity_matrix, axis=1)[:, :rerank_k]  # shape: (num_query_images, 10)
-            res[key] = [vals[db_idx] for db_idx in rerank_top_k]
-        
+            rerank_top_k = torch.argsort(-similarity_matrix, dim=1)[:, :rerank_k]  # shape: (1, rerank_k)
+            res[key] = [vals[db_idx.item()] for db_idx in rerank_top_k.reshape(-1)]
         return res
         
     def prep_dataset(self,data_path:Path,dataset:str,resize):

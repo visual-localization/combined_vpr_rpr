@@ -65,6 +65,8 @@ def entry():
     # subset = 1000
     # sub_top_k = {k:top_k_match[k] for k in list(top_k_match.keys())[:subset]}
     
+    top_k_match = test.rerank(top_k_match,rerank_k=1)
+    
     print("RPR Module: ")
     final_poses = test.run_rpr(top_k_match)
     print("Validation Step:")
