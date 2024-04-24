@@ -20,7 +20,7 @@ class RPR_Solver:
         self.reranker = self.load_reranker("epoch(08).ckpt")
         self.dataset = dataset
         self.vpr_type = vpr_type
-        
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         if(dataset == "Mapfree"):
             #Prepare depth image
             self.prep_dataset(db_path,dataset,MAPFREE_RESIZE)
@@ -142,7 +142,7 @@ class RPR_Solver:
         validate_results(final_pose,self.query_dataset,self.dataset)
         
     def load_reranker(self,reranker_path:str):
-        return VPRModel.load_from_checkpoint(reranker_path).eval()
+        return VPRModel.load_from_checkpoint(reranker_path,map_location=).eval()
     
     def rerank(self,top_k_matches,rerank_k):
         res = {}
