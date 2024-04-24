@@ -114,7 +114,7 @@ class RPR_Solver:
         
         matcher = MatchingPipeline(
             ckpt_path=ckpt_path,
-            device='cuda' if torch.cuda.is_available() else 'cpu',
+            device=self.device,
             vpr_type=self.vpr_type
         )
         top_k_matches = matcher.run(
@@ -142,7 +142,7 @@ class RPR_Solver:
         validate_results(final_pose,self.query_dataset,self.dataset)
         
     def load_reranker(self,reranker_path:str):
-        return VPRModel.load_from_checkpoint(reranker_path,map_location=).eval()
+        return VPRModel.load_from_checkpoint(reranker_path,map_location=self.device).eval()
     
     def rerank(self,top_k_matches,rerank_k):
         res = {}
@@ -151,11 +151,10 @@ class RPR_Solver:
             tvf.Normalize([0.485, 0.456, 0.406],
                         [0.229, 0.224, 0.225])
         ])
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
         for key,vals in tqdm(top_k_matches.items()):
             images = torch.stack([self.query_dataset[key][0]["image"]] + [self.db_dataset[val][0]["image"] for val in vals])
             images = transforms(images)
-            images = images.to(device)
+            images = images.to(self.device)
             embeddings = self.reranker(images)
             similarity_matrix = embeddings[0].reshape(1,-1)@embeddings[1:].T  # shape: (1, top_k)
             
