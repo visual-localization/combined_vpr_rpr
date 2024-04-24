@@ -37,6 +37,10 @@ class MatchingPipeline:
             assert ckpt_path is not None, "Please provide a path for NetVLAD Model"
             self.feature_dim = 32768
             self.model = self.load_model_netvlad(ckpt_path=ckpt_path)
+        elif(vpr_type == "Finetune"):
+            assert ckpt_path is not None, "Please provide a path for Finetune Model"
+            self.model = self.load_model_finetune(ckpt_path)
+            self.feature_dim = 4096
         else:
             raise NotImplementedError()
 
@@ -52,6 +56,12 @@ class MatchingPipeline:
         
         return model
 
+    def load_model_finetune(self,ckpt_path:str):
+        model = VPRModel.load_from_checkpoint(ckpt_path,map_location=self.device)
+        model.eval()
+        print(f"Loaded model from {ckpt_path} Successfully!")
+        return model
+    
     def load_model_mixvpr(self,ckpt_path:str):
         model = VPRModel(backbone_arch='resnet50',
                     layers_to_crop=[4],
@@ -173,7 +183,7 @@ class InferencePipeline:
     def __init__(
         self, model:Union[VPRModel,AnyLocVPR], 
         dataset:SceneDataset, 
-        feature_dim:int, batch_size:int=16, num_workers:int=5, device:str='cuda',
+        feature_dim:int, batch_size:int=64, num_workers:int=5, device:str='cuda',
         vpr_type:str=None
     ):
         self.model = model
@@ -192,9 +202,9 @@ class InferencePipeline:
                                           drop_last=False)
 
     def run(self, split: str = 'db') -> np.ndarray:
-        if os.path.exists(f'/root/LOGS/vpr_cache/{self.vpr_type}_global_descriptors_{split}.npy'):
+        if os.path.exists(f'/root/LOGS/vpr_cache_cam/{self.vpr_type}_global_descriptors_{split}.npy'):
             print(f"Skipping {split} features extraction of {type(self.model)}, loading from cache")
-            return np.load(f'/root/LOGS/vpr_cache/{self.vpr_type}_global_descriptors_{split}.npy')
+            return np.load(f'/root/LOGS/vpr_cache_cam/{self.vpr_type}_global_descriptors_{split}.npy')
 
         with torch.no_grad():
             global_descriptors = np.zeros((len(self.dataset), self.feature_dim))
@@ -216,7 +226,7 @@ class InferencePipeline:
                 global_descriptors[np.array(indices), :] = descriptors
 
         # save global descriptors
-        np.save(f'/root/LOGS/vpr_cache/{self.vpr_type}_global_descriptors_{split}.npy', global_descriptors)
+        np.save(f'/root/LOGS/vpr_cache_cam/{self.vpr_type}_global_descriptors_{split}.npy', global_descriptors)
         return global_descriptors
 
     def forward(self):
