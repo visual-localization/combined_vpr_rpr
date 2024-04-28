@@ -115,7 +115,7 @@ class Pittsburgh250kSceneDataset(SceneDataset):
                     continue
                 line = line.strip().split(" ")
                 img_name = line[0] # img_name = seq5/frame00587.png
-                if("pitch1" in img_name and any([yaw in img_name for yaw in REDUCED_YAW])):
+                if(mode=="query" or ("pitch1" in img_name and any([yaw in img_name for yaw in REDUCED_YAW]))):
                     qt = np.array(list(map(float, line[1:])))
                     qt[:3] = Pittsburgh250kSceneDataset.alt_convert_zxy(qt[:3])
                     poses[img_name] = (qt[3:],qt[:3])
