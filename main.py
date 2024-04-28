@@ -142,7 +142,7 @@ class RPR_Solver:
         validate_results(final_pose,self.query_dataset,self.dataset)
         
     def load_reranker(self,reranker_path:str):
-        return VPRModel.load_from_checkpoint(reranker_path,map_location=self.device).eval()
+        return VPRModel.load_from_checkpoint(reranker_path,map_location=self.device).eval().cuda()
     
     def rerank(self,top_k_matches,rerank_k):
         res = {}
