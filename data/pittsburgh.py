@@ -11,6 +11,13 @@ from const import PITTS_RESIZE
 from .scene import Scene,SceneDataset,transform
 from depth_dpt import DPT_DepthModel
 
+REDUCED_YAW = [
+    "yaw1.jpg",
+    "yaw4.jpg",
+    'yaw7.jpg',
+    'yaw10.jpg'
+]
+
 def generate_depth_path(img_path:str)->str:
     if 'queries' in str(img_path):
         depth_path=img_path.replace("queries_real","queries_depths")[:-4]
@@ -108,9 +115,10 @@ class Pittsburgh250kSceneDataset(SceneDataset):
                     continue
                 line = line.strip().split(" ")
                 img_name = line[0] # img_name = seq5/frame00587.png
-                qt = np.array(list(map(float, line[1:])))
-                qt[:3] = Pittsburgh250kSceneDataset.alt_convert_zxy(qt[:3])
-                poses[img_name] = (qt[3:],qt[:3])
+                if("pitch1" in img_name and any([yaw in img_name for yaw in REDUCED_YAW])):
+                    qt = np.array(list(map(float, line[1:])))
+                    qt[:3] = Pittsburgh250kSceneDataset.alt_convert_zxy(qt[:3])
+                    poses[img_name] = (qt[3:],qt[:3])
         return poses
 
     def __len__(self):
