@@ -87,7 +87,7 @@ class Pittsburgh250kSceneDataset(SceneDataset):
         """
         Read the intrinsics of a specific image, according to its name
         """
-        fx, fy, cx, cy, W, H = 768.000, 768.000, 320, 240, 648, 480
+        fx, fy, cx, cy, W, H = 768.000, 768.000, 320, 240, 640, 480
         K = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]], dtype=np.float32)
         if resize is not None:
             K = correct_intrinsic_scale(K, resize[0] / W, resize[1] / H)
