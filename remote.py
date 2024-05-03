@@ -57,7 +57,8 @@ def entry():
         # set_name="pitts250k_test",
         dataset = "CamLandmark_Partial",
         vpr_type = "NetVLAD",
-        vpr_only = True
+        vpr_only = True,
+        pose_mode="weighted"
     )
     print("VPR Module: ")
     top_k_match = test.run_vpr(top_k=1)

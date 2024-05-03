@@ -68,3 +68,5 @@ PITTS = {
 CAM_LANDMARK = {
     "/cambridge_landmark": "Cambridge_Landmark"
 }
+TRANS_THRESHOLD = 25
+ROT_THRESHOLD = 90

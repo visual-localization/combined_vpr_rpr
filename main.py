@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Tuple,Dict,List
+from typing import Tuple,Dict,List,Union,Literal
 from tqdm import tqdm
 
 import torchvision.transforms as tvf
@@ -14,9 +14,9 @@ from validation import validate_results
 from const import MAPFREE_RESIZE,CAM_RESIZE,GSV_RESIZE,PITTS_RESIZE,MIXVPR_RESIZE
 
 class RPR_Solver:
-    def __init__(self, db_path:Path, query_path:Path,dataset:str="Mapfree",set_name=None,vpr_only=False,vpr_type="MixVPR"):
+    def __init__(self, db_path:Path, query_path:Path,dataset:str="Mapfree",set_name=None,vpr_only=False,vpr_type="MixVPR",pose_mode="max"):
         self.depth_solver = DPT_DepthModel()
-        self.pose_solver = FeatureDepthModel(feature_matching="SuperGlue",pose_solver="EssentialMatrixMetric",dataset=dataset) if not vpr_only else NaivePoseModel()
+        self.pose_solver = FeatureDepthModel(feature_matching="SuperGlue",pose_solver="EssentialMatrixMetric",dataset=dataset,pose_mode=pose_mode) if not vpr_only else NaivePoseModel()
         self.reranker = self.load_reranker("epoch(08).ckpt")
         self.dataset = dataset
         self.vpr_type = vpr_type
