@@ -95,15 +95,19 @@ def bulk_generate_depth_maps(
     resize: Tuple[float, float] = None,
     skip_existing_depth_maps=True,
 ):
+    count = 0
     for input_path in tqdm(
         paths, desc="📸 Pittsburgh250k: Generating depth maps", ncols=100
     ):
         output_path = to_depth_path(input_path)
 
         if output_path.exists() and skip_existing_depth_maps:
+            count += 1
             continue
 
         handler(input_path, output_path, resize)
+
+    print(f"📸 Pittsburgh250k: Generated {len(paths) - count} depth maps.")
 
 
 class Pittsburgh250k(SceneDataset):
@@ -120,9 +124,11 @@ class Pittsburgh250k(SceneDataset):
 
         Args:
             base_dir (Path): The base directory where the images are located. E.g. Path("/pitts250k").
-            metadata_file (Path): Where the metadata file for this set is located. E.g. Path("/pitts250k", "poses", "pitts250k_test_db.txt").
+            poses_file (Path): Where the metadata file for this set is located. E.g. Path("/pitts250k", "poses", "pitts250k_test_db.txt").
             generate_depth_map (Callable[[Path, Path, Tuple[float, float]  |  None], None]): _description_
             resize (Tuple[float, float], optional): Whether to resize the images or not. Defaults to `PITTS_RESIZE`
+            remap_image_paths (bool, optional): Whether to remap the image paths or not. Defaults to True.
+            skip_existing_depth_maps (bool, optional): Whether to skip existing depth maps or not. Defaults to True.
         """
         print(
             f"🗺️ Pittsburgh250k. Initiating dataset at {base_dir} with poses file at {poses_file}"
