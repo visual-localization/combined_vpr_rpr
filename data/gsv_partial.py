@@ -149,7 +149,12 @@ class GsvDatasetPartial(SceneDataset):
         #Load depth map into torch.tensor
         if self.estimated_depth is not None:
             depth_path = generate_depth_path(self.data_path,(self.data_path/name))
-            depth = read_depth_image(str(depth_path)+".png")
+            numpy_path = str(depth_path)+".npy"
+            png_path = str(depth_path)+".png"
+            if(os.path.exists(numpy_path)):
+                depth = torch.from_numpy(np.load(numpy_path)).float()
+            else:
+                depth = read_depth_image(png_path)
         else:
             depth = torch.tensor([])
             

@@ -14,10 +14,10 @@ from validation import validate_results
 from const import MAPFREE_RESIZE,CAM_RESIZE,GSV_RESIZE,PITTS_RESIZE,MIXVPR_RESIZE
 
 class RPR_Solver:
-    def __init__(self, db_path:Path, query_path:Path,dataset:str="Mapfree",set_name=None,vpr_only=False,vpr_type="MixVPR",pose_mode="max"):
+    def __init__(self, db_path:Path, query_path:Path,dataset:str="Mapfree",set_name=None,vpr_only=False,vpr_type="MixVPR",pose_mode="max",depth_model="UniDepth"):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         
-        self.depth_solver = DPT_DepthModel()
+        self.depth_solver = DPT_DepthModel(model_name=depth_model)
         self.pose_solver = FeatureDepthModel(
             feature_matching="SuperGlue",
             pose_solver="EssentialMatrixMetric",

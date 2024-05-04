@@ -105,8 +105,13 @@ class MapfreeDataset(SceneDataset):
 
         #Load depth map into torch.tensor
         if self.estimated_depth is not None:
-            depth_path = str(self.depth_path / name).replace('.jpg','.png')
-            depth = read_depth_image(depth_path)
+            depth_path = str(self.depth_path / name).replace('.jpg','')
+            numpy_path = str(depth_path)+".npy"
+            png_path = str(depth_path)+".png"
+            if(os.path.exists(numpy_path)):
+                depth = torch.from_numpy(np.load(numpy_path)).float()
+            else:
+                depth = read_depth_image(png_path)
         else:
             depth = torch.tensor([])
             

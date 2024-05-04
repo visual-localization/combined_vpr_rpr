@@ -58,7 +58,8 @@ def entry():
         dataset = "CamLandmark_Partial",
         vpr_type = "NetVLAD",
         vpr_only = True,
-        pose_mode="weighted"
+        pose_mode="weighted",
+        depth_model="UniDepth"
     )
     print("VPR Module: ")
     top_k_match = test.run_vpr(top_k=1)
