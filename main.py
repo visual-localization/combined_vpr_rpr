@@ -15,12 +15,20 @@ from const import MAPFREE_RESIZE,CAM_RESIZE,GSV_RESIZE,PITTS_RESIZE,MIXVPR_RESIZ
 
 class RPR_Solver:
     def __init__(self, db_path:Path, query_path:Path,dataset:str="Mapfree",set_name=None,vpr_only=False,vpr_type="MixVPR",pose_mode="max"):
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
         self.depth_solver = DPT_DepthModel()
-        self.pose_solver = FeatureDepthModel(feature_matching="SuperGlue",pose_solver="EssentialMatrixMetric",dataset=dataset,pose_mode=pose_mode) if not vpr_only else NaivePoseModel()
-        self.reranker = self.load_reranker("epoch(08).ckpt")
+        self.pose_solver = FeatureDepthModel(
+            feature_matching="SuperGlue",
+            pose_solver="EssentialMatrixMetric",
+            dataset=dataset,pose_mode=pose_mode
+        ) if not vpr_only else NaivePoseModel()
+        
+        self.reranker = self.load_reranker("./LOGS/cur_best.ckpt")
         self.dataset = dataset
         self.vpr_type = vpr_type
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
         if(dataset == "Mapfree"):
             #Prepare depth image
             self.prep_dataset(db_path,dataset,MAPFREE_RESIZE)
@@ -106,7 +114,7 @@ class RPR_Solver:
 
     def run_vpr(self,top_k=10)->Dict[str,List[str]]:
         #Run VPR
-        ckpt_path = ""
+        ckpt_path = "./LOGS/cur_best.ckpt"
         if(self.vpr_type == "MixVPR"):
             ckpt_path ="/root/LOGS/init.ckpt"
         elif(self.vpr_type == "NetVLAD"):

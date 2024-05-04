@@ -202,9 +202,9 @@ class InferencePipeline:
                                           drop_last=False)
 
     def run(self, split: str = 'db') -> np.ndarray:
-        if os.path.exists(f'/root/LOGS/vpr_cache_cam/{self.vpr_type}_global_descriptors_{split}.npy'):
+        if os.path.exists(f'/kaggle/working/LOGS/vpr_cache_cam/{self.vpr_type}_global_descriptors_{split}.npy'):
             print(f"Skipping {split} features extraction of {type(self.model)}, loading from cache")
-            return np.load(f'/root/LOGS/vpr_cache_cam/{self.vpr_type}_global_descriptors_{split}.npy')
+            return np.load(f'/kaggle/working/LOGS/vpr_cache_cam/{self.vpr_type}_global_descriptors_{split}.npy')
 
         with torch.no_grad():
             global_descriptors = np.zeros((len(self.dataset), self.feature_dim))
@@ -226,7 +226,7 @@ class InferencePipeline:
                 global_descriptors[np.array(indices), :] = descriptors
 
         # save global descriptors
-        np.save(f'/root/LOGS/vpr_cache_cam/{self.vpr_type}_global_descriptors_{split}.npy', global_descriptors)
+        np.save(f'/kaggle/working/LOGS/vpr_cache_cam/{self.vpr_type}_global_descriptors_{split}.npy', global_descriptors)
         return global_descriptors
 
     def forward(self):
