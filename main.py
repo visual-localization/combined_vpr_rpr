@@ -14,13 +14,28 @@ from validation import validate_results
 from const import MAPFREE_RESIZE,CAM_RESIZE,GSV_RESIZE,PITTS_RESIZE,MIXVPR_RESIZE
 
 class RPR_Solver:
-    def __init__(self, db_path:Path, query_path:Path,dataset:str="Mapfree",set_name=None,vpr_only=False,vpr_type="MixVPR"):
+    def __init__(
+        self, db_path:Path, query_path:Path
+        ,dataset:str="Mapfree",set_name=None,
+        vpr_only=False,vpr_type="MixVPR",
+        pose_mode = "max"
+    ):
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
+        #region Solver
         self.depth_solver = DPT_DepthModel()
-        self.pose_solver = FeatureDepthModel(feature_matching="SuperGlue",pose_solver="EssentialMatrixMetric",dataset=dataset) if not vpr_only else NaivePoseModel()
-        self.reranker = self.load_reranker("epoch(08).ckpt")
+        self.pose_solver = FeatureDepthModel(
+            feature_matching="SuperGlue",
+            pose_solver="EssentialMatrixMetric",
+            dataset=dataset, pose_mode=pose_mode
+        ) if not vpr_only else NaivePoseModel()
+        #endregion
+        
+        self.reranker = self.load_reranker("./LOGS/cur_best.ckpt")
         self.dataset = dataset
         self.vpr_type = vpr_type
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
+        #region Dataset
         if(dataset == "Mapfree"):
             #Prepare depth image
             self.prep_dataset(db_path,dataset,MAPFREE_RESIZE)
@@ -77,7 +92,6 @@ class RPR_Solver:
                 random_state=222,
                 sample_percent=0.5
             )
-
         elif(dataset == "Pittsburgh250k"):
             assert set_name is not None, "Please specify which set"
             self.db_dataset = Pittsburgh250kSceneDataset(
@@ -96,6 +110,7 @@ class RPR_Solver:
             )
         else:
             raise NotImplementedError()
+        #endregion
         
     def run(self,top_k=5):
         top_k_matches = self.run_vpr(top_k=top_k)
@@ -106,7 +121,7 @@ class RPR_Solver:
 
     def run_vpr(self,top_k=10)->Dict[str,List[str]]:
         #Run VPR
-        ckpt_path = ""
+        ckpt_path = "./LOGS/cur_best.ckpt"
         if(self.vpr_type == "MixVPR"):
             ckpt_path ="/root/LOGS/init.ckpt"
         elif(self.vpr_type == "NetVLAD"):

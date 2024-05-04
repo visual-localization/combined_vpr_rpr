@@ -58,7 +58,7 @@ class MatchingPipeline:
 
     def load_model_finetune(self,ckpt_path:str):
         model = VPRModel.load_from_checkpoint(ckpt_path,map_location=self.device)
-        model.eval()
+        model.eval().cuda()
         print(f"Loaded model from {ckpt_path} Successfully!")
         return model
     

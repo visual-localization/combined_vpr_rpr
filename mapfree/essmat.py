@@ -7,6 +7,7 @@ from data import SceneDataset,Scene
 from .pose_solver import EssentialMatrixMetricSolver
 from .feature_matching import SuperGlue_matcher
 from .converter import convert_pose
+from utils import weightedAverageQuaternions,quat_angle_error
 from const import MAPFREE_RESIZE, CAM_RESIZE, GSV_RESIZE, PITTS_RESIZE
 
 class Pose:
@@ -37,8 +38,12 @@ class FeatureDepthModel:
         self,
         feature_matching:str,
         pose_solver:str,
-        dataset:str
+        dataset:str,
+        pose_mode:str
     ):
+        assert pose_mode in ["max","weighted"], "Please specify a value from max or weighted"
+        self.pose_mode = pose_mode
+        #region Resize
         resize = None
         if(dataset == "Mapfree"):
             resize = MAPFREE_RESIZE
@@ -50,6 +55,8 @@ class FeatureDepthModel:
             resize = PITTS_RESIZE
         else:
             raise NotImplementedError("No resize value for this dataset")
+        #endregion
+        
         if(feature_matching=="SuperGlue"):
             self.feature_matching = SuperGlue_matcher(outdoor=True,resize=resize)
         else:
@@ -72,8 +79,44 @@ class FeatureDepthModel:
                 query_dataset[query_key][0],
                 db_dataset[db_key][0]
             ) for db_key in top_k[query_key]]
-            max_pose = max(res, key=lambda item:item.inliers)
-            final_pose[query_key] = max_pose
+            final_res = None
+            if(self.pose_mode == "max"):
+                final_res = max(res, key=lambda item:item.inliers)
+            elif(self.pose_mode=="weighted"):
+                filtered_pose = list(filter(lambda pose:pose.inliers>0,res))
+                if len(filtered_pose) == 0:
+                    final_res = Pose(
+                        R = np.full((3, 3), np.nan),
+                        t = np.full((3, 1), np.nan),
+                        inliers = 0,
+                        anchor=None
+                    )
+                else:
+                    cont = True
+                    while cont:
+                        cont = False
+                        sum_inlier = sum(pose.inliers for pose in filtered_pose)
+                        t_final = sum(pose.t*(pose.inliers/sum_inlier) for pose in filtered_pose)
+                        inliers_final = sum(pose.inliers*(pose.inliers/sum_inlier) for pose in filtered_pose)
+                        R_final = weightedAverageQuaternions(
+                            np.array((pose.R for pose in filtered_pose)),
+                            list((pose.inliers/sum_inlier for pose in filtered_pose))
+                        )
+                        # for pose in filtered_pose:
+                        #     trans_err = np.linalg.norm(pose.t - t_final)
+                        #     rot_err = quat_angle_error(pose.R - R_final)[0][0]
+                        #     if(trans_err<=TRANS_THRESHOLD and rot_err<ROT_THRESHOLD):
+                        #         cont = True
+                        #         filtered_pose.remove(pose)
+                    final_res = Pose(
+                        R = R_final,
+                        t = t_final,
+                        inliers = inliers_final,
+                        anchor=None
+                    )
+            final_pose[query_key] = final_res
+            
+            
         return final_pose
     
     def process_pair(

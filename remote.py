@@ -52,12 +52,11 @@ def entry():
     torch.hub.set_dir("/root/LOGS/torch_cache")
     os.makedirs("/root/LOGS/vpr_cache_cam", exist_ok=True)
     test = RPR_Solver(
-        db_path = Path(PATH),
-        query_path = Path(PATH),
+        db_path = Path(PATH), query_path = Path(PATH),
         # set_name="pitts250k_test",
         dataset = "CamLandmark_Partial",
-        vpr_type = "NetVLAD",
-        vpr_only = True
+        vpr_type = "NetVLAD", vpr_only = True,
+        pose_mode = "max"
     )
     print("VPR Module: ")
     top_k_match = test.run_vpr(top_k=1)
