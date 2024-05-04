@@ -32,7 +32,7 @@ def weightedAverageQuaternions(Q:np.ndarray, w:List[float]):
     eigenVectors = eigenVectors[:,eigenValues.argsort()[::-1]]
 
     # return the real part of the largest eigenvector (has only real part)
-    return np.real(eigenVectors[:,0].A1)
+    return np.real(eigenVectors[:,0])
 
 
 

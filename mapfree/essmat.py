@@ -98,8 +98,13 @@ class FeatureDepthModel:
                         sum_inlier = sum(pose.inliers for pose in filtered_pose)
                         t_final = sum(pose.t*(pose.inliers/sum_inlier) for pose in filtered_pose)
                         inliers_final = sum(pose.inliers*(pose.inliers/sum_inlier) for pose in filtered_pose)
+                        r_list = []
+                        for pose in filtered_pose:
+                            r_list.append(pose.R)
+                        r_list = np.array(r_list)
                         R_final = weightedAverageQuaternions(
-                            np.array((pose.R for pose in filtered_pose)),
+                            # np.array((pose.R for pose in filtered_pose)),
+                            r_list,
                             list((pose.inliers/sum_inlier for pose in filtered_pose))
                         )
                         # for pose in filtered_pose:
