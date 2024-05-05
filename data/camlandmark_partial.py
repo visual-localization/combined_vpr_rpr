@@ -22,7 +22,7 @@ def generate_depth_path(root_path:Path,name:Path)->Path:
     root_path = str(root_path)
     
     scene_bundle = root_path.split("/")[-1]
-    depth_root = root_path.replace(scene_bundle,f"{scene_bundle}_depth")# .replace("input","working")
+    depth_root = root_path.replace(scene_bundle,f"{scene_bundle}_depth").replace("input","working")
     depth_path = os.path.join(
         depth_root, name
     )[:-4]
@@ -52,7 +52,7 @@ class CamLandmarkDatasetPartial(SceneDataset):
         self.mode = mode
         self.data_path = data_path # /content/drive/MyDrive/Dataset/CamLandmark/GreatCourt
         
-        
+        scene_bundle = str(data_path).split("/")[-1]
         # Additional Args
         self.resize = resize if resize is not None else CAM_RESIZE
         self.transforms=transforms
@@ -63,11 +63,19 @@ class CamLandmarkDatasetPartial(SceneDataset):
         img_path_list = self.poses.keys()
         self.img_path_list = sorted(img_path_list)
         
+        intrinsic_dict = {}
+        
         # create depth images
         for img_path in tqdm(self.img_path_list):
             input_path = (self.data_path/img_path)
             output_path = generate_depth_path(self.data_path,Path(img_path))
-            depth_solver.solo_generate_monodepth(input_path,output_path,self.resize)
+            intrinsics = depth_solver.solo_generate_monodepth(input_path,output_path,self.resize)
+            intrinsic_dict[img_path] = intrinsics
+        
+        os.makedirs("/kaggle/working/intrinsics",exist_ok=True)
+        with open(f"/kaggle/working/intrinsics/intrinsics_{scene_bundle}_{mode}.txt", "w") as f:
+            for img_path,intri in intrinsic_dict.items():
+                f.write(f"{img_path} {intri[0,0]} {intri[1,1]} {intri[0,2]} {intri[1,2]}\n")
         
     
     

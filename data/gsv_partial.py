@@ -38,7 +38,7 @@ def get_img_name(row):
 
 def generate_depth_path(img_path:Path)->Path:
     name = str(img_path)
-    return Path(name.replace("Images","Depths")[:-4])
+    return Path(name.replace("Images","Depths")[:-4].replace("input","working"))
 
 class GsvDatasetPartial(SceneDataset):
     data_path: Path
@@ -80,11 +80,20 @@ class GsvDatasetPartial(SceneDataset):
         img_path_list = self.poses.keys()
         self.img_path_list = sorted(img_path_list)
         
+        intrinsic_dict = {}
+        city = str(data_path).split("/")[-1]
+        
         # create depth images
         for img_path in tqdm(self.img_path_list):
             input_path = (self.data_path/img_path)
             output_path = generate_depth_path(Path(input_path))
-            depth_solver.solo_generate_monodepth(input_path,output_path,self.resize)
+            intrinsics = depth_solver.solo_generate_monodepth(input_path,output_path,self.resize)
+            intrinsic_dict[img_path] = intrinsics
+        
+        os.makedirs("/kaggle/working/intrinsics",exist_ok=True)
+        with open(f"/kaggle/working/intrinsics/intrinsics_{city}_{mode}.txt", "w") as f:
+            for img_path,intri in intrinsic_dict.items():
+                f.write(f"{img_path} {intri[0,0]} {intri[1,1]} {intri[0,2]} {intri[1,2]}\n")
         
     
     
@@ -109,7 +118,7 @@ class GsvDatasetPartial(SceneDataset):
         (q, t) encodes absolute pose (world-to-camera), i.e. X_c = R(q) X_W + t
         """
         poses = {}
-        csv_path = root_path.replace("Images","Dataframes")+".csv"
+        csv_path = str(root_path).replace("Images","Dataframes")+".csv"
         df = pd.read_csv(csv_path).set_index("place_id")
         loc_index = pd.unique(df.index)
         for idx in loc_index:

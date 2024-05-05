@@ -108,7 +108,8 @@ class DPT_DepthModel:
             sample = torch.from_numpy(img).permute(2, 0, 1).to(self.device) * 255.0
             predictions = self.model.infer(sample)
             depth = predictions["depth"]
-        return depth[0][0].cpu().numpy()
+            intrinsics = predictions["intrinsics"]
+        return depth[0][0].cpu().numpy(), intrinsics[0].cpu().numpy()
     
     def generate_monodepth_dpt(self,img_path,resize)->np.ndarray:
         # input
@@ -146,7 +147,7 @@ class DPT_DepthModel:
             if self.model_type == "dpt_hybrid_kitti":
                 prediction *= 256
                 
-        return prediction/1000
+        return prediction/1000, np.full((3,3),0)
     #region Ihatemylife
     def batch_generate_monodepth(self, input_path, output_path,resize):
   
@@ -192,7 +193,8 @@ class DPT_DepthModel:
         if(os.path.exists(str(output_path)+".png") or os.path.exists(str(output_path)+".npy")):
             return
         os.makedirs(Path(output_path).parent,exist_ok=True)
-        prediction = self.generate_monodepth(str(input_path),resize)
+        prediction,intrinsics = self.generate_monodepth(str(input_path),resize)
         # write_depth(str(output_path), prediction, bits=2, absolute_depth=self.absolute_depth)
         np.save(str(output_path)+".npy",prediction)
+        return intrinsics
         
