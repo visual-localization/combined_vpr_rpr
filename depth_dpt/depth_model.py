@@ -58,9 +58,7 @@ class DPT_DepthModel:
             )
             normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
         else:
-            assert (
-                False
-            ), f"model_type '{model_type}' not implemented, use: [dpt_large|dpt_hybrid|dpt_hybrid_kitti|dpt_hybrid_nyu|midas_v21]"
+            assert False, f"model_type '{model_type}' not implemented, use: [dpt_large|dpt_hybrid|dpt_hybrid_kitti|dpt_hybrid_nyu|midas_v21]"
 
         self.transform = Compose(
             [
