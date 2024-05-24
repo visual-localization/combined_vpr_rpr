@@ -89,6 +89,12 @@ def read_poses(
     return poses
 
 
+def validate_image_paths(image_paths: Iterable[Path]):
+    for image_path in image_paths:
+        if not image_path.exists():
+            raise FileNotFoundError(f"Image path {image_path} does not exist.")
+
+
 def bulk_generate_depth_maps(
     paths: Iterable[Path],
     handler: Callable[[Path, Path, Tuple[float, float] | None], None],
@@ -150,6 +156,8 @@ class Pittsburgh250k(SceneDataset):
             for image_path in self.image_paths
         ]
 
+        validate_image_paths(input_paths)
+
         bulk_generate_depth_maps(
             input_paths,
             generate_depth_map,
@@ -170,12 +178,12 @@ class Pittsburgh250k(SceneDataset):
             scene_obj (Scene): return Scene object
             index (int): return the index of the scene_object in the image_paths
         """
-        if isinstance(name_or_index, int):
-            name = self.image_paths[name_or_index]
-            index = name_or_index
-        else:
+        if isinstance(name_or_index, str):
             name = name_or_index
             index = self.image_paths.index(name_or_index)
+        else:
+            name = self.image_paths[name_or_index]
+            index = name_or_index
 
         if self.remap_image_paths:
             image_path = remap_image_path(self.base_dir.as_posix(), name)
@@ -210,9 +218,9 @@ class Pittsburgh250k(SceneDataset):
         return read_images(image_paths, self.resize)
 
     def read_depth_map(self, depth_path: Path) -> "Tensor":
-        return [image for image in read_depth_maps([depth_path], self.resize)][0]
+        return [image for image in read_depth_maps([depth_path])][0]
 
     def read_depth_maps(
         self, depth_paths: Iterable[Path]
     ) -> Generator["Tensor", None, None]:
-        return read_depth_maps(depth_paths, self.resize)
+        return read_depth_maps(depth_paths)
