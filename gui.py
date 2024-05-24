@@ -1,4 +1,6 @@
-from modal import App, Volume, Image, Mount, enter, method, gpu
+from modal import App, Volume, Image, Mount, Secret, gpu, enter, method, asgi_app
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from typing import Literal, Callable, TYPE_CHECKING
 from pathlib import Path
 from dataclasses import dataclass
@@ -87,31 +89,32 @@ class MixVprEssMatRprModel:
     def setup(self):
         from gui_package.data import Pittsburgh250k
         from gui_package.model import MixVPRModel, EssMatPoseRegressionModel
-        from depth_dpt import DPT_DepthModel
         import numpy as np
         from torch import load as torch_load
 
-        DEPTH_MODEL = DPT_DepthModel()
-
-        def generate_depth_map(i, o, r):
-            return DEPTH_MODEL.solo_generate_monodepth(i, o, r)
+        # We presume the database and queries datasets have not been truncated in anyway
+        # so we're kipping the depth map generation process during file validation
+        # from depth_dpt import DPT_DepthModel
+        # DEPTH_MODEL = DPT_DepthModel()
+        # def generate_depth_map(i, o, r):
+        #     return DEPTH_MODEL.solo_generate_monodepth(i, o, r)
 
         self.database = Pittsburgh250k(
             base_dir=BASE_DATA_DIR,
             poses_file=BASE_DATA_DIR / "poses" / "pitts250k_test_db.txt",
-            generate_depth_map=generate_depth_map,
+            # uncomment this line to enable depth map generation and comment the line after it to enable file validation
+            # generate_depth_map=generate_depth_map,
+            skip_validation=True,
         )
 
         self.queries = Pittsburgh250k(
             base_dir=QUERIES_DIR,
             poses_file=BASE_DATA_DIR / "poses" / "pitts250k_test_query.txt",
             remap_image_paths=False,
-            generate_depth_map=generate_depth_map,
+            # uncomment this line to enable depth map generation and comment the line after it to enable file validation
+            # generate_depth_map=generate_depth_map,
+            skip_validation=True,
         )
-
-        inference_model = MixVPRModel.load_from_checkpoint(CHECKPOINT_FILEPATH)
-        inference_model.to("cuda")
-        inference_model.eval()
 
         self.matching_model = EssMatPoseRegressionModel(
             self.queries.resize,
@@ -119,6 +122,20 @@ class MixVprEssMatRprModel:
             self.database,
             "cuda",
         )
+
+        # validate all the cache files to quickly skip inference model loading
+        if (
+            CACHE_DB_DESCRIPTORS_FILEPATH.exists()
+            and CACHE_RERANKER_DB_DESCRIPTORS_FILEPATH.exists()
+            and CACHE_QUERY_DESCRIPTORS_FILEPATH.exists()
+            and CACHE_RERANKER_QUERY_DESCRIPTORS_FILEPATH.exists()
+        ):
+            print("Skipping model loading. All cache files detected.")
+            return
+
+        inference_model = MixVPRModel.load_from_checkpoint(CHECKPOINT_FILEPATH)
+        inference_model.to("cuda")
+        inference_model.eval()
 
         rerank_model = MixVPRModel(
             backbone_arch="resnet50",
@@ -168,6 +185,9 @@ class MixVprEssMatRprModel:
             self.queries,
             lambda x: np.save(CACHE_RERANKER_QUERY_DESCRIPTORS_FILEPATH, x),
         )
+
+        for volume in VOLUMES.values():
+            volume.reload()
 
     def _validate_descriptors_cache(
         self,
