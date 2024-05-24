@@ -95,7 +95,7 @@ def validate_image_paths(image_paths: Iterable[Path]):
             raise FileNotFoundError(f"Image path {image_path} does not exist.")
 
 
-def bulk_generate_depth_maps(
+def validate_depth_map_paths(
     paths: Iterable[Path],
     handler: Callable[[Path, Path, Tuple[float, float] | None], None],
     resize: Tuple[float, float] = None,
@@ -121,10 +121,13 @@ class Pittsburgh250k(SceneDataset):
         self,
         base_dir: Path,
         poses_file: Path,
-        generate_depth_map: Callable[[Path, Path, Tuple[float, float] | None], None],
+        generate_depth_map: (
+            Callable[[Path, Path, Tuple[float, float] | None], None] | None
+        ),
         resize: Tuple[float, float] = PITTS_RESIZE,
         remap_image_paths=True,
         skip_existing_depth_maps=True,
+        skip_validation=False,
     ):
         """Create a Pittsburgh250k instance of a Dataset
 
@@ -156,14 +159,22 @@ class Pittsburgh250k(SceneDataset):
             for image_path in self.image_paths
         ]
 
-        validate_image_paths(input_paths)
+        if skip_validation:
+            print("Skipping validation")
+        else:
+            validate_image_paths(input_paths)
 
-        bulk_generate_depth_maps(
-            input_paths,
-            generate_depth_map,
-            resize,
-            skip_existing_depth_maps,
-        )
+            if generate_depth_map is None:
+                raise ValueError(
+                    "generate_depth_map is required when not skipping validation"
+                )
+
+            validate_depth_map_paths(
+                input_paths,
+                generate_depth_map,
+                resize,
+                skip_existing_depth_maps,
+            )
 
         print(f"🗺️ Pittsburgh250k. Dataset initiated with {len(self)} scenes")
 
