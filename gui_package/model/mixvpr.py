@@ -49,6 +49,7 @@ class MixVPRModel(LightningModule):
         miner_name="CustomMultiSimilarityMiner",
         miner_margin=0.1,
         faiss_gpu=False,
+        **kwargs,
     ) -> tuple[ResNetConfig, MixVPRConfig, bool]:
         resnet_config = ResNetConfig(
             model_name=backbone_arch,
