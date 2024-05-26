@@ -30,8 +30,8 @@ def weighted_average_quaternions(q: "ndarray", w: list[float]):
     weight_sum = 0
 
     for i in range(0, M):
-        q = q[i, :]
-        A = w[i] * outer(q, q) + A
+        qq = q[i, :]
+        A = w[i] * outer(qq, qq) + A
         weight_sum += w[i]
 
     # scale
@@ -145,7 +145,7 @@ class EssMatPoseRegressionModel:
             list((pose.inliers / sum_inlier for pose in filtered_pose)),
         )
 
-        final_res = Pose(r=r_final, t=t_final, inliers=inliers_final, anchor=None)
+        final_res = Pose(r_final, t_final, inliers_final, None)
 
         return final_res
 
