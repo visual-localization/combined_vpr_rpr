@@ -1,7 +1,7 @@
-from modal import App, Volume, Image, Mount, Secret, gpu, enter, method, asgi_app
+from modal import App, Volume, Image, Mount, gpu, enter, method, asgi_app
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
-from typing import Literal, Callable, TYPE_CHECKING
+from typing import Literal, Callable, NamedTuple, Literal, TYPE_CHECKING
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -12,9 +12,9 @@ if TYPE_CHECKING:
     from gui_package.data import Pittsburgh250k, Scene
     from torch import Tensor
     import numpy as np
+    from PIL import Image as PIL_Image
 
-
-app = App(name="GUI Model modal backend")
+app = App(name="MixVprEssMatRprGui")
 
 image = (
     Image.debian_slim(python_version="3.11")
@@ -68,6 +68,11 @@ class InferenceConfig:
     batch_size: int = 4
     num_workers: int = 4
     device: str = "cuda"
+
+
+class Sample(NamedTuple):
+    scene: "Scene"
+    image: "PIL_Image.Image"
 
 
 @app.cls(
@@ -213,16 +218,22 @@ class MixVprEssMatRprModel:
             print(f"Skipping features extraction from {filepath}. Cache file detected.")
 
     @method()
-    def get_scene(
-        self, dataset: Literal["database", "queries"], index_or_name: str | int
-    ) -> tuple["Scene", int]:
-        if dataset == "database":
-            return self.database[index_or_name]
-        elif dataset == "queries":
-            return self.queries[index_or_name]
+    def run(
+        self,
+        image_name: str,
+        top_k: int,
+        rerank_k: int,
+        pose_mode: Literal["max", "weighted"] = "max",
+    ):
+        return self._run_query(image_name, top_k, rerank_k, pose_mode)
 
-    @method()
-    def run(self, image_name: str, top_k: int, rerank_k: int):
+    def _run_query(
+        self,
+        image_name: str,
+        top_k: int,
+        rerank_k: int,
+        pose_mode: Literal["max", "weighted"] = "max",
+    ):
         import numpy as np
 
         query_scene, query_index = self.queries[image_name]
@@ -248,24 +259,59 @@ class MixVprEssMatRprModel:
         )
 
         reranked_top_k = np.argsort(-reranked_similarity_vector, axis=0)[:rerank_k]
-        reranked_top_k = top_k_matches[reranked_top_k]
 
-        reranked_database_scenes = [self.database[i][0] for i in reranked_top_k]
+        reranked_database_scenes = [
+            retrieved_database_scenes[i] for i in reranked_top_k
+        ]
 
         pose = self.matching_model.process_top_k(
-            reranked_database_scenes, query_scene, "max"
+            reranked_database_scenes, query_scene, pose_mode
         )
 
-        return query_scene, retrieved_database_scenes, reranked_database_scenes, pose
+        return query_scene, retrieved_database_scenes, reranked_top_k, pose
 
     @method()
-    def quick_test(self):
-        first_scene = self.get_scene.remote("queries", 0)[0]
-        query_scene, retrieved_db_scenes, pose = self.run.remote(first_scene.name, 5, 5)
+    def run_and_visualize(
+        self,
+        sample_scene_name: str,
+        top_k: int,
+        rerank_k: int,
+        pose_mode: Literal["max", "weighted"] = "max",
+    ):
+        from PIL import Image
 
-        print("Query scene", query_scene)
-        print("Retrieved database scenes", retrieved_db_scenes)
-        print("Pose", pose)
+        query_scene, retrieved_db_scenes, reranked_ordering, pose = self._run_query(
+            sample_scene_name, top_k, rerank_k, pose_mode
+        )
+
+        query_image = Image.open(query_scene.image).convert("RGB")
+        query_sample = Sample(query_scene, query_image)
+
+        retrieved_db_samples = []
+        for scene in retrieved_db_scenes:
+            image = Image.open(scene.image).convert("RGB")
+            retrieved_db_samples.append(Sample(scene, image))
+
+        return query_sample, retrieved_db_samples, reranked_ordering, pose
+
+    @method()
+    def generate_query_sample(self, seed: int, count: int) -> list[Sample]:
+        from random import Random
+        from PIL import Image
+        import io
+
+        random = Random(seed)
+
+        count = min(count, len(self.queries))
+        indices = random.sample(range(len(self.queries)), k=count)
+
+        samples = []
+        for index in indices:
+            scene, _ = self.queries[index]
+            image = Image.open(scene.image).convert("RGB")
+            samples.append(Sample(scene, image))
+
+        return samples
 
     def _bulk_inference_on_dataset(
         self, model: "MixVPRModel", config: InferenceConfig, dataset: "Pittsburgh250k"
@@ -322,7 +368,228 @@ class MixVprEssMatRprModel:
         return global_descriptors
 
 
+web_app = FastAPI()
+assets_path = Path(__file__).parent / "assets"
+
+
+@app.function(
+    image=image,
+    cpu=2.0,
+    concurrency_limit=5,
+    mounts=[
+        Mount.from_local_dir(assets_path, remote_path="/assets"),
+        Mount.from_local_python_packages(
+            "gui_package.data", "gui_package.model", "depth_dpt", "SuperGlue.models"
+        ),
+    ],
+)
+@asgi_app()
+def fastapi_app():
+    import io
+    from PIL import Image
+    from gui_package.data import Scene
+    import gradio as gr
+    from gradio.routes import mount_gradio_app
+
+    @web_app.get("/favicon.ico", include_in_schema=False)
+    async def favicon():
+        return FileResponse("/assets/favicon.svg")
+
+    def generate_sample(seed: float, count: float, current_samples: list[Sample]):
+        samples: list[Sample] = MixVprEssMatRprModel().generate_query_sample.remote(
+            int(seed), int(count)
+        )
+
+        current_samples.clear()
+        current_samples.extend(samples)
+
+        dataset = [
+            [sample.scene.name, sample.scene.width, sample.scene.height]
+            for sample in samples
+        ]
+
+        return dataset, samples
+
+    def on_query_preview(
+        sample_query_gallery_index: int,
+        query_samples: list[Sample],
+    ):
+        print(query_samples)
+        sample = query_samples[sample_query_gallery_index]
+        return sample.image
+
+    def on_query(
+        sample_index: int,
+        samples: list[Sample],
+        top_k: float,
+        rerank_k: float,
+        pose_mode: Literal["max", "weighted"] = "max",
+    ):
+        image_name: str = samples[sample_index].scene.name
+
+        response = MixVprEssMatRprModel().run_and_visualize.remote(
+            image_name, int(top_k), int(rerank_k), pose_mode
+        )
+
+        query_sample, retrieved_db_samples, reranked_ordering, pose = response
+
+        return (
+            query_sample.image,
+            [sample.image for sample in retrieved_db_samples],
+            [retrieved_db_samples[i].image for i in reranked_ordering],
+            str(pose),
+        )
+
+    default_sample_image = Image.open("/assets/default_sample/image.jpg").convert("RGB")
+    with open("/assets/default_sample/scene.json") as f:
+        string = f.read()
+        default_sample_scene = Scene.from_json(string)
+
+    default_sample = Sample(default_sample_scene, default_sample_image)
+
+    with gr.Blocks(title="MixVPR Essential Matrix Pose Regression Model") as interface:
+        query_samples = gr.State([default_sample])
+
+        with gr.Row():
+            with gr.Column():
+                gr.Markdown("## Input")
+                sample_seed = gr.Number(
+                    label="Sample seed", value=0, minimum=0, maximum=1000, step=1
+                )
+
+                sample_count = gr.Number(
+                    label="Sample count", value=1, minimum=1, maximum=10, step=1
+                )
+
+                generate_new_sample_button = gr.Button("Generate New Sample")
+
+                sample_query_preview = gr.Image(label="Query preview")
+
+                sample_query_gallery = gr.Dataset(
+                    components=[
+                        "text",
+                        "text",
+                        "text",
+                    ],
+                    headers=["Scene name", "Width", "Height"],
+                    label="Query Samples",
+                    type="index",
+                    samples=[
+                        [
+                            default_sample.scene.name,
+                            default_sample.scene.width,
+                            default_sample.scene.height,
+                        ]
+                    ],
+                )
+
+                with gr.Row():
+                    query_top_k_slider = gr.Slider(
+                        1, 10, 5, label="Retrieve top k images", step=1
+                    )
+
+                    query_rerank_k_slider = gr.Slider(
+                        1, 10, 5, label="Rerank top k images", step=1
+                    )
+
+                with gr.Row():
+                    pose_mode_dropdown = gr.Dropdown(
+                        ["max", "weighted"], label="Pose Mode", value="max"
+                    )
+
+                    query_button = gr.Button("Query")
+
+            with gr.Column():
+                gr.Markdown("## Output")
+                query_image = gr.Image(label="Query Image")
+
+                retrieved_gallery = gr.Gallery(label="Retrieved Images", rows=1)
+
+                reranked_gallery = gr.Gallery(label="Reranked Images", rows=1)
+
+                pose_output = gr.Textbox(
+                    label="Pose Output", value="", interactive=False
+                )
+
+        # interface.load(
+        #     generate_sample,
+        #     [sample_seed, sample_count, query_samples],
+        #     [sample_query_gallery, query_samples],
+        # )
+
+        generate_new_sample_button.click(
+            generate_sample,
+            [sample_seed, sample_count, query_samples],
+            [sample_query_gallery, query_samples],
+        )
+
+        sample_query_gallery.click(
+            on_query_preview,
+            [sample_query_gallery, query_samples],
+            [sample_query_preview],
+        )
+
+        # sample_query_gallery.select(
+        #     on_sample_gallery_select, None, sample_query_gallery_selected_index
+        # )
+
+        query_button.click(
+            on_query,
+            [
+                sample_query_gallery,
+                query_samples,
+                query_top_k_slider,
+                query_rerank_k_slider,
+                pose_mode_dropdown,
+            ],
+            [
+                query_image,
+                retrieved_gallery,
+                reranked_gallery,
+                pose_output,
+            ],
+        )
+
+    return mount_gradio_app(
+        app=web_app,
+        blocks=interface,
+        path="/",
+    )
+
+
+@app.function(
+    image=image,
+    mounts=[
+        Mount.from_local_python_packages(
+            "gui_package.data", "gui_package.model", "depth_dpt", "SuperGlue.models"
+        )
+    ],
+    volumes=VOLUMES,
+)
+def generate_default_sample():
+    samples = MixVprEssMatRprModel().generate_query_sample.remote(0, 1)
+    sample = samples[0]
+
+    assets_path = Path(LOG_DIR, "assets", "default_sample")
+    assets_path.mkdir(parents=True, exist_ok=True)
+
+    # save the sample image to ./assets/default_sample/{Path(scene_name).name} (ext included in scene_name)
+    sample_image: Image.Image = sample.image
+    sample_image.save(assets_path / "image.jpg")
+
+    # save the scene NamedTuple to ./assets/default_sample/{Path(scene_name).name}.json
+    sample_scene: "Scene" = sample.scene
+    with open(
+        assets_path / "scene.json",
+        "w",
+    ) as f:
+        string = sample_scene.to_json()
+        f.write(string)
+
+    for volume in VOLUMES.values():
+        volume.commit()
+
+
 @app.local_entrypoint()
 def entry():
-    # main.remote()
-    MixVprEssMatRprModel().quick_test.remote()
+    generate_default_sample.remote()
