@@ -1,6 +1,8 @@
 from pathlib import Path
-from typing import Tuple, Union, NamedTuple, Iterable, Generator, TYPE_CHECKING
+from typing import Tuple, Union, NamedTuple, Iterable, Generator, Self, TYPE_CHECKING
 from torch.utils.data import Dataset
+from numpy import array
+import json
 
 if TYPE_CHECKING:
     from numpy import ndarray
@@ -31,6 +33,35 @@ class Scene(NamedTuple):
     translation: "ndarray"
     width: float
     height: float
+
+    def to_json(self) -> str:
+        return json.dumps(
+            {
+                "name": self.name,
+                "image": self.image.as_posix(),
+                "depth": self.depth.as_posix(),
+                "intrinsics": self.intrinsics.tolist(),
+                "rotation": self.rotation.tolist(),
+                "translation": self.translation.tolist(),
+                "width": self.width,
+                "height": self.height,
+            }
+        )
+
+    @staticmethod
+    def from_json(b: str | bytes | bytearray) -> Self:
+        data = json.loads(b)
+
+        return Scene(
+            name=data["name"],
+            image=Path(data["image"]),
+            depth=Path(data["depth"]),
+            intrinsics=array(data["intrinsics"]),
+            rotation=array(data["rotation"]),
+            translation=array(data["translation"]),
+            width=data["width"],
+            height=data["height"],
+        )
 
 
 ABSTRACT_METHOD_ERROR = "Subclasses must implement this method."
