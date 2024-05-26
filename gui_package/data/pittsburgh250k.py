@@ -123,7 +123,7 @@ class Pittsburgh250k(SceneDataset):
         poses_file: Path,
         generate_depth_map: (
             Callable[[Path, Path, Tuple[float, float] | None], None] | None
-        ),
+        ) = None,
         resize: Tuple[float, float] = PITTS_RESIZE,
         remap_image_paths=True,
         skip_existing_depth_maps=True,
