@@ -3,7 +3,7 @@ faiss-cpu
 matplotlib
 numpy
 pandas
-Pillow
+pillow
 prettytable
 pytorch-lightning
 pytorch-metric-learning
@@ -19,6 +19,7 @@ tqdm
 open3d>
 transforms3d
 yacs>
+gradio~=3.50.2
 h5py
 kornia
 transformers
