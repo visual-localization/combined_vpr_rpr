@@ -448,23 +448,25 @@ def fastapi_app():
     default_sample = Sample(default_sample_scene, default_sample_image)
 
     with gr.Blocks(title="MixVPR Essential Matrix Pose Regression Model") as interface:
+        gr.Markdown(
+            """
+# MixVPR Essential Matrix Pose Regression Model
+
+This is a demo of the MixVPR Essential Matrix Pose Regression Model. 
+The model takes in a query image and a gallery of images, and retrieves the top k images from the gallery that are most similar to the query image.
+The model then reranks the top k images based on the pose similarity between the query image and the gallery images.
+The model uses the Essential Matrix to estimate the pose similarity between the query image and the gallery images.
+Finally, the model estimate the pose of the query image based on the similarity extracted.
+"""
+        )
+
         query_samples = gr.State([default_sample])
 
-        with gr.Row():
-            with gr.Column():
-                gr.Markdown("## Input")
-                sample_seed = gr.Number(
-                    label="Sample seed", value=0, minimum=0, maximum=1000, step=1
-                )
+        with gr.Tab("Interface"):
+            gr.Markdown("## Input")
 
-                sample_count = gr.Number(
-                    label="Sample count", value=1, minimum=1, maximum=10, step=1
-                )
-
-                generate_new_sample_button = gr.Button("Generate New Sample")
-
+            with gr.Row():
                 sample_query_preview = gr.Image(label="Query preview")
-
                 sample_query_gallery = gr.Dataset(
                     components=[
                         "text",
@@ -483,33 +485,47 @@ def fastapi_app():
                     ],
                 )
 
-                with gr.Row():
-                    query_top_k_slider = gr.Slider(
-                        1, 10, 5, label="Retrieve top k images", step=1
-                    )
+            gr.Markdown("### Query Options")
+            with gr.Row():
+                query_top_k_slider = gr.Slider(
+                    1, 10, 5, label="Retrieve top k images", step=1
+                )
 
-                    query_rerank_k_slider = gr.Slider(
-                        1, 10, 5, label="Rerank top k images", step=1
-                    )
+                query_rerank_k_slider = gr.Slider(
+                    1, 10, 5, label="Rerank top k images", step=1
+                )
 
-                with gr.Row():
-                    pose_mode_dropdown = gr.Dropdown(
-                        ["max", "weighted"], label="Pose Mode", value="max"
-                    )
+                pose_mode_dropdown = gr.Dropdown(
+                    ["max", "weighted"], label="Pose Mode", value="max"
+                )
 
-                    query_button = gr.Button("Query")
+            query_button = gr.Button("Query", variant="primary")
 
-            with gr.Column():
-                gr.Markdown("## Output")
+            gr.Markdown("## Output")
+
+            with gr.Row():
                 query_image = gr.Image(label="Query Image")
+                query_map = gr.Plot()
 
+            with gr.Accordion("Step-by-step", open=False):
                 retrieved_gallery = gr.Gallery(label="Retrieved Images", rows=1)
-
                 reranked_gallery = gr.Gallery(label="Reranked Images", rows=1)
-
                 pose_output = gr.Textbox(
                     label="Pose Output", value="", interactive=False
                 )
+
+        with gr.Tab("Configuration"):
+            gr.Markdown("## Sample Configuration")
+
+            sample_seed = gr.Number(
+                label="Sample seed", value=0, minimum=0, maximum=1000, step=1
+            )
+
+            sample_count = gr.Number(
+                label="Sample count", value=1, minimum=1, maximum=15, step=1
+            )
+
+            generate_new_sample_button = gr.Button("Generate New Sample")
 
         # interface.load(
         #     generate_sample,
