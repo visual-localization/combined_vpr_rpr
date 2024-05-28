@@ -26,3 +26,5 @@ transformers
 fast-pytorch-kmeans
 einops
 distinctipy
+bokeh
+utm

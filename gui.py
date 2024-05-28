@@ -84,10 +84,11 @@ class Sample(NamedTuple):
     ],
     volumes=VOLUMES,
     cpu=2.0,
+    concurrency_limit=5,
     gpu=gpu.A10G(),
     timeout=86400,
     memory=32768,
-    allow_concurrent_inputs=True,
+    allow_concurrent_inputs=5,
 )
 class MixVprEssMatRprModel:
     @enter()
@@ -374,8 +375,9 @@ assets_path = Path(__file__).parent / "assets"
 
 @app.function(
     image=image,
-    cpu=2.0,
-    concurrency_limit=5,
+    cpu=4.0,
+    memory=16384,
+    concurrency_limit=3,
     mounts=[
         Mount.from_local_dir(assets_path, remote_path="/assets"),
         Mount.from_local_python_packages(
@@ -385,15 +387,141 @@ assets_path = Path(__file__).parent / "assets"
 )
 @asgi_app()
 def fastapi_app():
-    import io
+    from math import radians, sin, cos, pi, tan, log
+    from bokeh.plotting import figure
+    from scipy.spatial.transform import Rotation
+    from bokeh.models import Arrow, VeeHead, ColumnDataSource
+    import xyzservices.providers as xyz
     from PIL import Image
     from gui_package.data import Scene
+    from gui_package.model import Pose
     import gradio as gr
+    import utm
     from gradio.routes import mount_gradio_app
 
     @web_app.get("/favicon.ico", include_in_schema=False)
     async def favicon():
         return FileResponse("/assets/favicon.svg")
+
+    def to_pitch_yaw_roll(w: float, x: float, y: float, z: float):
+        r = Rotation.from_quat([x, y, z, w])
+        return r.as_euler("zyx", degrees=True)
+
+    def to_start_end_arrow(x: float, y: float, length: float, angle: float):
+        angle = radians(angle)
+        x_end = x + length * cos(angle)
+        y_end = y + length * sin(angle)
+        return (x, y), (x_end, y_end)
+
+    def pitts_to_latlon(easting: float, northing: float):
+        return utm.to_latlon(easting, northing, 17, "T")
+
+    def merc(lat, lon):
+        r_major = 6378137.000
+        x = r_major * radians(lon)
+        scale = x / lon
+        y = 180.0 / pi * log(tan(pi / 4.0 + lat * (pi / 180.0) / 2.0)) * scale
+        return y, x
+
+    def generate_map(query: Scene, retrieved: list[Scene], inferred_pose: Pose):
+        gt_head = VeeHead(fill_color="#00A526", size=15)
+        inferred_head = VeeHead(fill_color="#DD0018", size=15)
+        reference_head = VeeHead(fill_color="#000000", size=15)
+
+        fig = figure(
+            x_range=(-2000000, 6000000),
+            y_range=(-1000000, 7000000),
+            x_axis_type="mercator",
+            y_axis_type="mercator",
+        )
+
+        def draw_arrow(yaw, head, point):
+            start, end = to_start_end_arrow(point[1], point[0], 15, yaw)
+            fig.add_layout(
+                Arrow(
+                    end=head,
+                    line_color=head.fill_color,
+                    line_width=10,
+                    x_start=start[0],
+                    y_start=start[1],
+                    x_end=end[0],
+                    y_end=end[1],
+                )
+            )
+
+        fig.add_tile(xyz.OpenStreetMap.Mapnik, retina=True)
+
+        gt_latlng = pitts_to_latlon(query.translation[0], query.translation[2])
+        gt_merc = merc(gt_latlng[0], gt_latlng[1])
+        gt_point = ColumnDataSource(
+            data=dict(
+                lat=[gt_merc[0]],
+                lon=[gt_merc[1]],
+            )
+        )
+
+        inferred_latlng = pitts_to_latlon(inferred_pose.t[0], inferred_pose.t[2])
+        inferred_merc = merc(inferred_latlng[0], inferred_latlng[1])
+        inferred_point = ColumnDataSource(
+            data=dict(
+                lat=[inferred_merc[0]],
+                lon=[inferred_merc[1]],
+            )
+        )
+
+        reference_latlngs = [
+            pitts_to_latlon(scene.translation[0], scene.translation[2])
+            for scene in retrieved
+        ]
+        reference_mercs = [merc(latlng[0], latlng[1]) for latlng in reference_latlngs]
+        reference_points = ColumnDataSource(
+            data=dict(
+                lat=[latlng[0] for latlng in reference_mercs],
+                lon=[latlng[1] for latlng in reference_mercs],
+            )
+        )
+
+        gt_yaw = to_pitch_yaw_roll(*query.rotation)[1]
+        inferred_yaw = to_pitch_yaw_roll(*inferred_pose.R)[1]
+        reference_yaws = [to_pitch_yaw_roll(*scene.rotation)[1] for scene in retrieved]
+
+        fig.scatter(
+            x="lon",
+            y="lat",
+            size=30,
+            fill_color=reference_head.fill_color,
+            fill_alpha=1,
+            source=reference_points,
+        )
+
+        for reference_yaw, reference_merc in zip(reference_yaws, reference_mercs):
+            draw_arrow(
+                reference_yaw, reference_head, (reference_merc[0], reference_merc[1])
+            )
+
+        fig.scatter(
+            x="lon",
+            y="lat",
+            size=30,
+            fill_color=gt_head.fill_color,
+            fill_alpha=1,
+            source=gt_point,
+        )
+
+        draw_arrow(gt_yaw, gt_head, (gt_merc[0], gt_merc[1]))
+
+        fig.scatter(
+            x="lon",
+            y="lat",
+            size=30,
+            fill_color=inferred_head.fill_color,
+            fill_alpha=1,
+            source=inferred_point,
+        )
+
+        draw_arrow(inferred_yaw, inferred_head, (inferred_merc[0], inferred_merc[1]))
+
+        return fig
 
     def generate_sample(seed: float, count: float, current_samples: list[Sample]):
         samples: list[Sample] = MixVprEssMatRprModel().generate_query_sample.remote(
@@ -414,7 +542,6 @@ def fastapi_app():
         sample_query_gallery_index: int,
         query_samples: list[Sample],
     ):
-        print(query_samples)
         sample = query_samples[sample_query_gallery_index]
         return sample.image
 
@@ -433,11 +560,16 @@ def fastapi_app():
 
         query_sample, retrieved_db_samples, reranked_ordering, pose = response
 
+        plot = generate_map(
+            query_sample.scene, [sample.scene for sample in retrieved_db_samples], pose
+        )
+
         return (
             query_sample.image,
             [sample.image for sample in retrieved_db_samples],
             [retrieved_db_samples[i].image for i in reranked_ordering],
             str(pose),
+            plot,
         )
 
     default_sample_image = Image.open("/assets/default_sample/image.jpg").convert("RGB")
@@ -505,11 +637,11 @@ Finally, the model estimate the pose of the query image based on the similarity 
 
             with gr.Row():
                 query_image = gr.Image(label="Query Image")
-                query_map = gr.Plot()
+                output_map = gr.Plot()
 
             with gr.Accordion("Step-by-step", open=False):
-                retrieved_gallery = gr.Gallery(label="Retrieved Images", rows=1)
-                reranked_gallery = gr.Gallery(label="Reranked Images", rows=1)
+                retrieved_gallery = gr.Gallery(label="Retrieved Images", columns=1)
+                reranked_gallery = gr.Gallery(label="Reranked Images", columns=1)
                 pose_output = gr.Textbox(
                     label="Pose Output", value="", interactive=False
                 )
@@ -558,12 +690,7 @@ Finally, the model estimate the pose of the query image based on the similarity 
                 query_rerank_k_slider,
                 pose_mode_dropdown,
             ],
-            [
-                query_image,
-                retrieved_gallery,
-                reranked_gallery,
-                pose_output,
-            ],
+            [query_image, retrieved_gallery, reranked_gallery, pose_output, output_map],
         )
 
     return mount_gradio_app(
