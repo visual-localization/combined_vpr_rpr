@@ -35,17 +35,18 @@ class Scene(NamedTuple):
     height: float
 
     def to_json(self) -> str:
-        return json.dumps(
-            {
-                "name": self.name,
-                "image": self.image.as_posix(),
-                "depth": self.depth.as_posix(),
-                "intrinsics": self.intrinsics.tolist(),
-                "rotation": self.rotation.tolist(),
-                "translation": self.translation.tolist(),
-                "width": self.width,
-                "height": self.height,
-            }
+        return json.dumps(self.to_dict())
+
+    def to_dict(self) -> dict:
+        return dict(
+            name=self.name,
+            image=self.image.as_posix(),
+            depth=self.depth.as_posix(),
+            intrinsics=self.intrinsics.tolist(),
+            rotation=self.rotation.tolist(),
+            translation=self.translation.tolist(),
+            width=self.width,
+            height=self.height,
         )
 
     @staticmethod
