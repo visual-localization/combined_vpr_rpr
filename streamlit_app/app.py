@@ -3,6 +3,7 @@ import streamlit as st
 from pathlib import Path
 import modal
 from streamlit_image_select import image_select
+from itertools import cycle
 
 from data_models import (
     ImageDTOS,
@@ -137,16 +138,18 @@ with st.expander("Step-by-step breakdown"):
 
         st.subheader("Retrieved images")
         with st.container(height=520):
-            st.image(
-                retrieved_images,
-                caption=retrieved_captions,
-                use_column_width=True,
-            )
+            retrieved_cols = cycle(st.columns(3))
+
+            for idx, img in enumerate(retrieved_images):
+                next(retrieved_cols).image(
+                    img, width=200, caption=retrieved_captions[idx]
+                )
 
         st.subheader("Reranked images")
         with st.container(height=520):
-            st.image(
-                reranked_images,
-                caption=reranked_captions,
-                use_column_width=True,
-            )
+            reranked_cols = cycle(st.columns(3))
+
+            for idx, img in enumerate(reranked_images):
+                next(reranked_cols).image(
+                    img, width=200, caption=reranked_captions[idx]
+                )

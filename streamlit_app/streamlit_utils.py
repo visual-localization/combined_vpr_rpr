@@ -3,7 +3,7 @@ from base64 import b64decode
 from data_models import ImageDTOS, QueryResponseDTOS
 from scipy.spatial.transform import Rotation
 from bokeh.plotting import figure
-from bokeh.models import Arrow, VeeHead, ColumnDataSource, Circle, HoverTool
+from bokeh.models import Arrow, VeeHead, ColumnDataSource, HoverTool
 from bokeh.tile_providers import get_provider
 import xyzservices.providers as xyz
 import utm
@@ -79,15 +79,20 @@ def scatter_coords(
         )
     )
 
-    glyph = Circle(
-        x="x", y="y", radius=3, fill_color=color, line_color="black", line_width=2
-    )
-
     arrow_head = VeeHead(
         size=25, fill_color=color, line_cap="round", line_color="black", line_width=2
     )
 
-    fig.add_glyph(source, glyph)
+    fig.scatter(
+        "x",
+        "y",
+        source=source,
+        size=20,
+        fill_color=color,
+        line_color="black",
+        line_width=2,
+        marker="circle",
+    )
 
     for coord, heading in zip(coords, headings):
         start = coord
@@ -184,7 +189,7 @@ def generate_bokeh_figure(query_response: QueryResponseDTOS):
         retrieved_headings,
         [f"retrieved_{scene.name}" for scene in query_response.retrieved_scenes],
         "white",
-        20,
+        10,
     )
 
     scatter_coords(
@@ -193,7 +198,7 @@ def generate_bokeh_figure(query_response: QueryResponseDTOS):
         [ground_truth_heading],
         [f"ground_truth_{query_response.query.name}"],
         "green",
-        20,
+        10,
     )
 
     scatter_coords(
@@ -202,7 +207,7 @@ def generate_bokeh_figure(query_response: QueryResponseDTOS):
         [inferred_heading],
         ["inferred"],
         "red",
-        20,
+        10,
     )
 
     return fig
