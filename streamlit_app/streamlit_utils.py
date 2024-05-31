@@ -66,7 +66,7 @@ def pittsburgh_utm_to_mercator(easting: float, northing: float) -> tuple[float, 
 def scatter_coords(
     fig: figure,
     coords: list[tuple[float, float]],
-    headings: list[float],
+    headings: list[float] | None,
     descs: list[str],
     color: str,
     arrow_length: float,
@@ -94,30 +94,31 @@ def scatter_coords(
         marker="circle",
     )
 
-    for coord, heading in zip(coords, headings):
-        start = coord
-        end = (
-            start[0] + arrow_length * math.cos(heading),
-            start[1] + arrow_length * math.sin(heading),
-        )
+    if headings is not None:
+        for coord, heading in zip(coords, headings):
+            start = coord
+            end = (
+                start[0] + arrow_length * math.cos(heading),
+                start[1] + arrow_length * math.sin(heading),
+            )
 
-        arrow = Arrow(
-            end=arrow_head,
-            x_start=start[0],
-            y_start=start[1],
-            x_end=end[0],
-            y_end=end[1],
-            line_color="black",
-            line_width=2,
-            line_dash=[10, 10],
-        )
+            arrow = Arrow(
+                end=arrow_head,
+                x_start=start[0],
+                y_start=start[1],
+                x_end=end[0],
+                y_end=end[1],
+                line_color="black",
+                line_width=2,
+                line_dash=[10, 10],
+            )
 
-        fig.add_layout(arrow)
+            fig.add_layout(arrow)
 
     return fig
 
 
-def generate_bokeh_figure(query_response: QueryResponseDTOS):
+def generate_bokeh_figure(query_response: QueryResponseDTOS, add_arrows=False):
     ground_truth_coords = pittsburgh_utm_to_mercator(
         query_response.query.translation[0], query_response.query.translation[2]
     )
@@ -131,26 +132,30 @@ def generate_bokeh_figure(query_response: QueryResponseDTOS):
         for scene in query_response.retrieved_scenes
     ]
 
-    ground_truth_heading = quat_to_heading(
-        query_response.query.rotation[0],
-        query_response.query.rotation[1],
-        query_response.query.rotation[2],
-        query_response.query.rotation[3],
-    )
-
-    inferred_heading = quat_to_heading(
-        query_response.pose.r[0],
-        query_response.pose.r[1],
-        query_response.pose.r[2],
-        query_response.pose.r[3],
-    )
-
-    retrieved_headings = [
-        quat_to_heading(
-            scene.rotation[0], scene.rotation[1], scene.rotation[2], scene.rotation[3]
+    if add_arrows:
+        ground_truth_heading = quat_to_heading(
+            query_response.query.rotation[0],
+            query_response.query.rotation[1],
+            query_response.query.rotation[2],
+            query_response.query.rotation[3],
         )
-        for scene in query_response.retrieved_scenes
-    ]
+
+        inferred_heading = quat_to_heading(
+            query_response.pose.r[0],
+            query_response.pose.r[1],
+            query_response.pose.r[2],
+            query_response.pose.r[3],
+        )
+
+        retrieved_headings = [
+            quat_to_heading(
+                scene.rotation[0],
+                scene.rotation[1],
+                scene.rotation[2],
+                scene.rotation[3],
+            )
+            for scene in query_response.retrieved_scenes
+        ]
 
     hover = HoverTool(
         tooltips=[
@@ -186,7 +191,7 @@ def generate_bokeh_figure(query_response: QueryResponseDTOS):
     scatter_coords(
         fig,
         retrieved_coordss,
-        retrieved_headings,
+        retrieved_headings if add_arrows and retrieved_headings else None,
         [f"retrieved_{scene.name}" for scene in query_response.retrieved_scenes],
         "white",
         10,
@@ -195,7 +200,7 @@ def generate_bokeh_figure(query_response: QueryResponseDTOS):
     scatter_coords(
         fig,
         [ground_truth_coords],
-        [ground_truth_heading],
+        [ground_truth_heading] if add_arrows and ground_truth_heading else None,
         [f"ground_truth_{query_response.query.name}"],
         "green",
         10,
@@ -204,7 +209,7 @@ def generate_bokeh_figure(query_response: QueryResponseDTOS):
     scatter_coords(
         fig,
         [inferred_coords],
-        [inferred_heading],
+        [inferred_heading] if add_arrows and inferred_heading else None,
         ["inferred"],
         "red",
         10,
