@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Tuple,Dict,List
+from typing import Tuple,Dict,List,Union,Literal
 from tqdm import tqdm
 
 import torchvision.transforms as tvf
@@ -14,28 +14,21 @@ from validation import validate_results
 from const import MAPFREE_RESIZE,CAM_RESIZE,GSV_RESIZE,PITTS_RESIZE,MIXVPR_RESIZE
 
 class RPR_Solver:
-    def __init__(
-        self, db_path:Path, query_path:Path
-        ,dataset:str="Mapfree",set_name=None,
-        vpr_only=False,vpr_type="MixVPR",
-        pose_mode = "max"
-    ):
+    def __init__(self, db_path:Path, query_path:Path,dataset:str="Mapfree",set_name=None,vpr_only=False,vpr_type="MixVPR",pose_mode="max"):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         
-        #region Solver
         self.depth_solver = DPT_DepthModel()
         self.pose_solver = FeatureDepthModel(
             feature_matching="SuperGlue",
             pose_solver="EssentialMatrixMetric",
-            dataset=dataset, pose_mode=pose_mode
+            dataset=dataset,pose_mode=pose_mode
         ) if not vpr_only else NaivePoseModel()
-        #endregion
         
-        self.reranker = self.load_reranker("./LOGS/cur_best.ckpt")
+        # self.reranker = self.load_reranker("/root/LOGS/resnet50_epoch(00)_step(0111)_R1[0.9368]_R5[0.9823]_OverlapR1[0.0869]_OverlapR5[0.0930].ckpt")
         self.dataset = dataset
         self.vpr_type = vpr_type
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         
-        #region Dataset
         if(dataset == "Mapfree"):
             #Prepare depth image
             self.prep_dataset(db_path,dataset,MAPFREE_RESIZE)
@@ -92,6 +85,7 @@ class RPR_Solver:
                 random_state=222,
                 sample_percent=0.5
             )
+
         elif(dataset == "Pittsburgh250k"):
             assert set_name is not None, "Please specify which set"
             self.db_dataset = Pittsburgh250kSceneDataset(
@@ -110,7 +104,6 @@ class RPR_Solver:
             )
         else:
             raise NotImplementedError()
-        #endregion
         
     def run(self,top_k=5):
         top_k_matches = self.run_vpr(top_k=top_k)
@@ -121,11 +114,11 @@ class RPR_Solver:
 
     def run_vpr(self,top_k=10)->Dict[str,List[str]]:
         #Run VPR
-        ckpt_path = "./LOGS/cur_best.ckpt"
+        ckpt_path = "/root/pipeline/resnet50_epoch(00)_step(0111)_R1[0.9368]_R5[0.9823]_OverlapR1[0.0869]_OverlapR5[0.0930].ckpt"
         if(self.vpr_type == "MixVPR"):
-            ckpt_path ="/root/LOGS/init.ckpt"
+            ckpt_path ="/root/pipeline/resnet50_epoch(00)_step(0111)_R1[0.9368]_R5[0.9823]_OverlapR1[0.0869]_OverlapR5[0.0930].ckpt"
         elif(self.vpr_type == "NetVLAD"):
-            ckpt_path ="/root/LOGS/checkpoint.pth.tar"
+            ckpt_path ="/root/pipeline/resnet50_epoch(00)_step(0111)_R1[0.9368]_R5[0.9823]_OverlapR1[0.0869]_OverlapR5[0.0930].ckpt"
         
         matcher = MatchingPipeline(
             ckpt_path=ckpt_path,
@@ -156,8 +149,8 @@ class RPR_Solver:
     ):
         validate_results(final_pose,self.query_dataset,self.dataset)
         
-    def load_reranker(self,reranker_path:str):
-        return VPRModel.load_from_checkpoint(reranker_path,map_location=self.device).eval().cuda()
+    # def load_reranker(self,reranker_path:str):
+    #     return VPRModel.load_from_checkpoint(reranker_path,map_location=self.device).eval().cuda()
     
     def rerank(self,top_k_matches,rerank_k):
         res = {}

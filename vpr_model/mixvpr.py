@@ -63,23 +63,27 @@ class MatchingPipeline:
         return model
     
     def load_model_mixvpr(self,ckpt_path:str):
-        model = VPRModel(backbone_arch='resnet50',
-                    layers_to_crop=[4],
-                    agg_arch='MixVPR',
-                    agg_config={'in_channels': 1024,
-                                'in_h': 20,
-                                'in_w': 20,
-                                'out_channels': 1024,
-                                'mix_depth': 4,
-                                'mlp_ratio': 1,
-                                'out_rows': 4},
-                    )
+        # model = VPRModel(backbone_arch='resnet50',
+        #             layers_to_crop=[4],
+        #             agg_arch='MixVPR',
+        #             agg_config={'in_channels': 1024,
+        #                         'in_h': 20,
+        #                         'in_w': 20,
+        #                         'out_channels': 1024,
+        #                         'mix_depth': 4,
+        #                         'mlp_ratio': 1,
+        #                         'out_rows': 4},
+        #             )
 
-        state_dict = torch.load(ckpt_path, map_location=torch.device(self.device))
-        model.load_state_dict(state_dict)
+        # state_dict = torch.load(ckpt_path, map_location=torch.device(self.device))
+        # model.load_state_dict(state_dict)
 
-        model.eval()
-        model.to(self.device)
+        # model.eval()
+        # model.to(self.device)
+        model = VPRModel.load_from_checkpoint(ckpt_path,map_location=self.device)
+        model.eval().cuda()
+        print(f"Loaded model from {ckpt_path} Successfully!")
+        return model
         
         
         # model = VPRModel.load_from_checkpoint(ckpt_path,map_location=self.device)
@@ -202,9 +206,9 @@ class InferencePipeline:
                                           drop_last=False)
 
     def run(self, split: str = 'db') -> np.ndarray:
-        if os.path.exists(f'/root/LOGS/vpr_cache_cam/{self.vpr_type}_global_descriptors_{split}.npy'):
+        if os.path.exists(f'/root/LOGS/vpr_cache/MixVPR_global_descriptors_{split}.npy'):
             print(f"Skipping {split} features extraction of {type(self.model)}, loading from cache")
-            return np.load(f'/root/LOGS/vpr_cache_cam/{self.vpr_type}_global_descriptors_{split}.npy')
+            return np.load(f'/root/LOGS/vpr_cache/MixVPR_global_descriptors_{split}.npy')
 
         with torch.no_grad():
             global_descriptors = np.zeros((len(self.dataset), self.feature_dim))
@@ -226,7 +230,7 @@ class InferencePipeline:
                 global_descriptors[np.array(indices), :] = descriptors
 
         # save global descriptors
-        np.save(f'/root/LOGS/vpr_cache_cam/{self.vpr_type}_global_descriptors_{split}.npy', global_descriptors)
+        np.save(f'/root/LOGS/vpr_cache/MixVPR_global_descriptors_{split}.npy', global_descriptors)
         return global_descriptors
 
     def forward(self):

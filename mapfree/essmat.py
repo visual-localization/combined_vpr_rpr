@@ -2,6 +2,7 @@ from typing import List,Dict
 from tqdm import tqdm
 
 import numpy as np
+from transforms3d.quaternions import quat2mat 
 
 from data import SceneDataset,Scene
 from .pose_solver import EssentialMatrixMetricSolver
@@ -43,7 +44,6 @@ class FeatureDepthModel:
     ):
         assert pose_mode in ["max","weighted"], "Please specify a value from max or weighted"
         self.pose_mode = pose_mode
-        #region Resize
         resize = None
         if(dataset == "Mapfree"):
             resize = MAPFREE_RESIZE
@@ -55,8 +55,6 @@ class FeatureDepthModel:
             resize = PITTS_RESIZE
         else:
             raise NotImplementedError("No resize value for this dataset")
-        #endregion
-        
         if(feature_matching=="SuperGlue"):
             self.feature_matching = SuperGlue_matcher(outdoor=True,resize=resize)
         else:
@@ -82,6 +80,12 @@ class FeatureDepthModel:
             final_res = None
             if(self.pose_mode == "max"):
                 final_res = max(res, key=lambda item:item.inliers)
+                if(final_res.inliers==0):
+                    db_scene = db_dataset[final_res.anchor][0]
+                    final_res.t = db_scene["translation"]
+                    final_res.R = quat2mat(db_scene["rotation"])
+                    final_res.inliers=-1
+                
             elif(self.pose_mode=="weighted"):
                 filtered_pose = list(filter(lambda pose:pose.inliers>0,res))
                 if len(filtered_pose) == 0:
@@ -98,13 +102,8 @@ class FeatureDepthModel:
                         sum_inlier = sum(pose.inliers for pose in filtered_pose)
                         t_final = sum(pose.t*(pose.inliers/sum_inlier) for pose in filtered_pose)
                         inliers_final = sum(pose.inliers*(pose.inliers/sum_inlier) for pose in filtered_pose)
-                        r_list = []
-                        for pose in filtered_pose:
-                            r_list.append(pose.R)
-                        r_list = np.array(r_list)
                         R_final = weightedAverageQuaternions(
-                            # np.array((pose.R for pose in filtered_pose)),
-                            r_list,
+                            np.array((pose.R for pose in filtered_pose)),
                             list((pose.inliers/sum_inlier for pose in filtered_pose))
                         )
                         # for pose in filtered_pose:
@@ -120,8 +119,6 @@ class FeatureDepthModel:
                         anchor=None
                     )
             final_pose[query_key] = final_res
-            
-            
         return final_pose
     
     def process_pair(
