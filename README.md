@@ -13,8 +13,10 @@ We followed the architecture proposed in MixVPR, which implements a new aggregat
 
 We elected to follow the process of Feature Matching and Scale from Estimated Depth (Ess.Mat + D.Scale) from Map-free Visual Relocalization. The output of this module is the difference in translation and orientation between the reference-query image pair. The number of point correspondences that correlate with this transformation is used to estimate a confidence value. This ensures only predictions founded on valid grounds can be considered successful.
 
+Reference images retrieved from the VPR module run the risk of sharing little overlap with the query image, creating faulty correspondences. Therefore, we propose a new mining strategy based on the Multi-Similarity Miner and Loss to ensure high overlaps of visual features between images.
+
 ### Results
-Our method is evaluated on Pittsburgh250k-test dataset and Cambridge Landmark dataset. The metrics used are median translation error (Positions - meters), median rotation error (Orientation - degrees) and successful rate of the process, since our method reject any result that does not pass the inlier correspondences confidence threshold.
+Our method is evaluated on Pittsburgh250k-test dataset and Cambridge Landmark dataset. The metrics used are median translation error (Positions - meters), median rotation error (Orientation - degrees) and successful rate of the process.
 
 <table>
 <thead>
@@ -100,6 +102,8 @@ Our method is evaluated on Pittsburgh250k-test dataset and Cambridge Landmark da
 </table>
 
 ### Demo
+![image](image/demo1.png)
+![image](image/demo2.png)
 
 ### Acknowledgements
 Parts of this project are inspired by the following repositories:
