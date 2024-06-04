@@ -64,7 +64,7 @@ Our method is evaluated on Pittsburgh250k-test dataset and Cambridge Landmark da
     <td>NetVLAD</td>
     <td>1.00</td>
     <td>84.88</td>
-    <td>47.68</td>
+    <td> - </td>
     <td>1.00</td>
     <td>3.99</td>
     <td>10.03</td>
@@ -73,7 +73,7 @@ Our method is evaluated on Pittsburgh250k-test dataset and Cambridge Landmark da
     <td>AnyLoc</td>
     <td>1.00</td>
     <td>42.56</td>
-    <td>46.66</td>
+    <td> - </td>
     <td>1.00</td>
     <td>4.46</td>
     <td>10.42</td>
@@ -82,19 +82,19 @@ Our method is evaluated on Pittsburgh250k-test dataset and Cambridge Landmark da
     <td>MixVPR</td>
     <td>1.00</td>
     <td>21.82</td>
-    <td>36.57</td>
+    <td> - </td>
     <td>1.00</td>
     <td>4.04</td>
     <td>7.44</td>
   </tr>
   <tr>
     <td>Ours</td>
-    <td>0.93</td>
-    <td>10.09</td>
-    <td>37.46</td>
-    <td>0.95</td>
-    <td>3.16</td>
-    <td>4.35</td>
+    <td>0.99</td>
+    <td>18.32</td>
+    <td> - </td>
+    <td>1.00</td>
+    <td>3.19</td>
+    <td>4.80</td>
   </tr>
 </tbody>
 </table>
